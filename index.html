@@ -155,6 +155,14 @@ details.card>summary{cursor:pointer;list-style:none;display:flex;justify-content
 details.card>summary::-webkit-details-marker{display:none}
 details.card>summary::after{content:"▾";color:var(--muted)}
 details.card[open]>summary::after{content:"▴"}
+.strip.picked{outline:2px solid var(--sign);outline-offset:-2px}
+.strip .ck{display:none;width:20px;height:20px;border-radius:5px;border:2px solid var(--muted);flex:none;align-items:center;justify-content:center;font:700 13px var(--f-body);color:var(--sign-ink)}
+.selmode .strip .ck{display:inline-flex}
+.strip.picked .ck{background:var(--sign);border-color:var(--sign)}
+.selbar{position:sticky;bottom:0;z-index:5;background:var(--signbar);color:#fff;border-radius:12px;padding:10px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;box-shadow:var(--shadow)}
+.selbar .cnt{font:700 16px var(--f-display);letter-spacing:.04em;color:var(--signbar-ink);margin-right:auto}
+.selbar .btn{min-height:36px;padding:6px 12px}
+.daysel{background:none;border:0;color:var(--link);cursor:pointer;font:600 12px var(--f-display);letter-spacing:.08em;text-transform:uppercase;padding:0 0 0 8px}
 .ctl.on{background:var(--sign);border-color:var(--sign);color:var(--sign-ink)}
 .me{width:22px;height:22px;position:relative}
 .me i{position:absolute;inset:4px;border-radius:50%;background:var(--me);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5)}
@@ -955,8 +963,10 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <div class="toolbar">
           <input class="input" id="logSearch" placeholder="Zoek registratie, type, maatschappij, ICAO…" aria-label="Logboek doorzoeken">
           <select id="logFilter" aria-label="Filter"><option value="">Alle spots</option><option value="first">Alleen eerste keer gezien</option><option value="photo">Met foto</option></select>
+          <button class="btn" id="selBtn" type="button">Selecteren</button>
         </div>
         <div id="logList" class="wrap" style="gap:18px"></div>
+        <div class="selbar" id="selBar" hidden><span class="cnt" id="selCnt">0 geselecteerd</span><button class="btn" id="selAll" type="button">Alles</button><button class="btn" id="selNone" type="button">Niets</button><button class="btn danger" id="selDel" type="button">Verwijderen</button><button class="btn" id="selDone" type="button">Klaar</button></div>
         <div class="card">
           <div class="lbl">Back-up</div>
           <div class="small muted">Je logboek staat op dit apparaat, in deze browser. Maak af en toe een back-up, inclusief foto's.</div>
@@ -1569,7 +1579,10 @@ function setupOCR(btn,input,onResult,onPhoto){if(!SAMPLE_IMG){btn.hidden=true;re
     catch(err){const m=err?.code==="not_granted"?"Toestemming geweigerd":err?.code==="rate_limited"?"Even wachten en opnieuw proberen":"Herkennen lukte niet";toast(m);st&&(st.textContent=m)}}}
 
 /* ---------- logbook ---------- */
-async function renderLog(){const q=$("#logSearch").value.trim().toUpperCase();const flt=$("#logFilter").value;
+let selMode=false;const picked=new Set();let lastShown=[];
+function updateSelBar(){$("#selBar").hidden=!selMode;$("#selBtn").textContent=selMode?"Stoppen":"Selecteren";
+  $("#selCnt").textContent=`${picked.size} geselecteerd`;const d=$("#selDel");d.disabled=!picked.size;d.classList.remove("armed");d.textContent=picked.size?`Verwijder ${picked.size}`:"Verwijderen"}
+async function renderLog(){updateSelBar();const q=$("#logSearch").value.trim().toUpperCase();const flt=$("#logFilter").value;
   const regs=new Set(SPOTS.map(s=>normReg(s.reg)));const types=new Set(SPOTS.map(s=>s.type).filter(Boolean));const als=new Set(SPOTS.map(s=>s.airlineIcao||s.airlineName).filter(Boolean));
   $("#stats").innerHTML=[[SPOTS.length,"spots"],[regs.size,"registraties"],[types.size,"types"],[als.size,"maatschappijen"]].map(([n,l])=>`<div class="stat"><span class="n">${n}</span><span class="lbl">${l}</span></div>`).join("");
   renderStats();
@@ -1579,14 +1592,17 @@ async function renderLog(){const q=$("#logSearch").value.trim().toUpperCase();co
   if(flt==="first")list=list.filter(s=>firstId.get(normReg(s.reg))===s.id);if(flt==="photo")list=list.filter(s=>s.photos?.length);
   if(!SPOTS.length){$("#logList").innerHTML=`<div class="empty card"><b>Nog geen spots</b><span>Tik op <b style="font-size:inherit">Nieuwe spot</b> en typ een registratie: type, Mode-S en maatschappij vullen zich vanzelf in. Of open een toestel op de radar en kies "Log deze spot".</span>${Store.persistent?"":"<span class='small'>Let op: deze weergave kan niet blijvend opslaan. Maak een export voordat je sluit.</span>"}</div>`;return}
   if(!list.length){$("#logList").innerHTML=`<div class="empty"><b>Geen resultaten</b><span>Pas je zoekterm of filter aan.</span></div>`;return}
+  lastShown=list;
   const groups=new Map();for(const s of list){const d=s.date.slice(0,10);if(!groups.has(d))groups.set(d,[]);groups.get(d).push(s)}
-  const html=[];for(const [d,arr] of groups){html.push(`<div class="daygroup"><div class="lbl">${esc(fmtDate(d))} · ${arr.length}</div>${arr.map(s=>`<button class="strip" data-id="${s.id}">
-     <div class="c1"><span class="r">${esc(s.reg)}</span><span class="mono small muted">${esc(s.type||"····")}</span></div>
+  const html=[];for(const [d,arr] of groups){html.push(`<div class="daygroup"><div class="lbl">${esc(fmtDate(d))} · ${arr.length}</div>${selMode?`<button class="daysel" data-day="${d}" type="button">Selecteer dag</button>`:""}${arr.map(s=>`<button class="strip${picked.has(s.id)?" picked":""}" data-id="${s.id}">
+     <div class="c1"><span class="r" style="display:flex;gap:6px;align-items:center"><span class="ck" aria-hidden="true">${picked.has(s.id)?"✓":""}</span>${esc(s.reg)}</span><span class="mono small muted">${esc(s.type||"····")}</span></div>
      <div class="c2"><span class="a">${esc(s.airlineName||"Onbekende operator")}</span><span class="ty">${esc(prettyType(s.type)||s.type||"")}${s.callsign?" · "+esc(s.callsign):""} ${firstId.get(normReg(s.reg))===s.id?'<span class="chip new">1e keer</span>':""}</span></div>
      <div class="c3">${s.photos?.length?`<img class="pic" data-pid="${s.photos[0]}" alt="">`:""}<div><div class="ap">${esc(s.airport||"")}</div><div class="tm">${s.noTime?"":esc(fmtTime(s.date))}</div></div></div></button>`).join("")}</div>`)}
   $("#logList").innerHTML=html.join("");
   $$("#logList img[data-pid]").forEach(async i=>i.src=await photoURL(i.dataset.pid));
-  $$("#logList .strip").forEach(b=>b.onclick=()=>openSpot(b.dataset.id))}
+  $$("#logList .strip").forEach(b=>b.onclick=()=>{if(selMode){const id=b.dataset.id;picked.has(id)?picked.delete(id):picked.add(id);renderLog()}else openSpot(b.dataset.id)});
+  $$("#logList .daysel").forEach(b=>b.onclick=()=>{const ids=lastShown.filter(s=>s.date.slice(0,10)===b.dataset.day).map(s=>s.id);const all=ids.every(i=>picked.has(i));ids.forEach(i=>all?picked.delete(i):picked.add(i));renderLog()});
+  $("#logList").classList.toggle("selmode",selMode);updateSelBar()}
 function renderStats(){const card=$("#statsCard");if(!SPOTS.length){card.hidden=true;return}card.hidden=false;
   const count=(f)=>{const m=new Map();for(const s of SPOTS){const k=f(s);if(k)m.set(k,(m.get(k)||0)+1)}return[...m.entries()].sort((a,b)=>b[1]-a[1])};
   const bars=(arr,lab)=>{const max=arr[0]?.[1]||1;return`<div class="bars">${arr.slice(0,8).map(([k,n])=>`<div class="bar"><span class="bl" title="${esc(lab(k))}">${esc(lab(k))}</span><span class="bt"><i style="width:${Math.max(4,n/max*100)}%"></i></span><span class="bv">${n}</span></div>`).join("")}</div>`};
@@ -1608,7 +1624,15 @@ function renderStats(){const card=$("#statsCard");if(!SPOTS.length){card.hidden=
    ${byAl.length?`<div><div class="lbl" style="margin-bottom:8px">Top maatschappijen</div>${bars(byAl,k=>k)}</div>`:""}
    ${byType.length?`<div><div class="lbl" style="margin-bottom:8px">Top types</div>${bars(byType,k=>k+(prettyType(k)?" · "+prettyType(k):""))}</div>`:""}
    ${byAp.length?`<div><div class="lbl" style="margin-bottom:8px">Top spotlocaties</div>${bars(byAp,k=>k+(DB.apByCode.get(k)?" · "+DB.apByCode.get(k).name:""))}</div>`:""}`}
-$("#logSearch").oninput=renderLog;$("#logFilter").onchange=renderLog;$("#newSpotBtn").onclick=()=>openSpotForm();
+$("#logSearch").oninput=renderLog;
+$("#selBtn").onclick=()=>{selMode=!selMode;picked.clear();renderLog()};
+$("#selDone").onclick=()=>{selMode=false;picked.clear();renderLog()};
+$("#selAll").onclick=()=>{lastShown.forEach(s=>picked.add(s.id));renderLog()};
+$("#selNone").onclick=()=>{picked.clear();renderLog()};
+$("#selDel").onclick=async()=>{const d=$("#selDel");if(!picked.size)return;
+  if(!d.classList.contains("armed")){d.classList.add("armed");d.textContent=`Zeker? ${picked.size} spots weg`;return}
+  const n=picked.size;for(const id of picked){const s=SPOTS.find(x=>x.id===id);for(const p of s?.photos||[])await Store.del("photos",p);await Store.del("spots",id)}
+  picked.clear();selMode=false;await reloadSpots();renderLog();toast(`${n} spots verwijderd`)};$("#logFilter").onchange=renderLog;$("#newSpotBtn").onclick=()=>openSpotForm();
 async function openSpot(id){const s=SPOTS.find(x=>x.id===id);if(!s)return;const ap=DB.apByCode.get(s.airport);const al=DB.alByIcao.get(s.airlineIcao);const n=seenCount.get(normReg(s.reg))||1;
   const body=h(`<div id="spPhotos" class="wrap" style="gap:10px"></div>
    <div class="card"><dl class="kv">
