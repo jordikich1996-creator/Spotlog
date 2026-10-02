@@ -1,4 +1,4 @@
-<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#161A1B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Spotlog"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>Spotlog Europa</title>
+<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#161A1B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Spotlog"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>Spotlog Europa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
@@ -35,7 +35,6 @@ button,input,select,textarea{font:inherit;color:inherit}
 .sign-dir svg{width:18px;height:18px}
 .signbar .spacer{flex:1}
 .installbtn{align-self:center;margin-left:8px;background:var(--sign);color:var(--sign-ink);border:0;border-radius:6px;padding:6px 10px;font:700 14px var(--f-display);letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
-
 .status{display:flex;align-items:center;gap:6px;padding:0 16px;font:500 12px var(--f-mono);color:#C9CFCB;white-space:nowrap}
 .dot{width:8px;height:8px;border-radius:50%;background:#7C8580}
 .dot.on{background:#4CC384;box-shadow:0 0 0 3px rgba(76,195,132,.25)}
@@ -87,6 +86,7 @@ a{color:var(--link)}
 .empty b{color:var(--ink);font:700 20px var(--f-display);letter-spacing:.03em}
 /* radar */
 #map{position:absolute;inset:0;background:var(--surface-2)}
+#map.dark-tiles .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.88) saturate(.6)}
 .leaflet-container{font-family:var(--f-body)!important;background:var(--surface-2)!important}
 .map-ctl{position:absolute;top:10px;left:10px;right:10px;z-index:500;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none}
 .map-ctl>*{pointer-events:auto}
@@ -860,9 +860,10 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <button class="ctl" id="gpsBtn" title="Mijn locatie"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg><span class="hide-sm">GPS</span></button>
       </div>
       <div class="banner" id="offlineBanner" hidden>
-        <b>Live radar heeft internet nodig</b>
-        <span>Deze weergave kan de live ADS-B-bronnen niet bereiken. Open <span class="mono">spotlog-europa.html</span> in je eigen browser (of zet het op een gratis host zoals Netlify Drop of GitHub Pages) en de radar draait live via adsb.lol en airplanes.live. Logboek, registratie-database, maatschappijen, luchthavens en types werken hier gewoon.</span>
-        <div class="row"><button class="btn" id="retryBtn">Opnieuw proberen</button></div>
+        <b id="bannerTitle">Geen live data</b>
+        <span id="bannerText">Geen enkele live bron gaf antwoord.</span>
+        <div id="diag" class="mono small" style="display:flex;flex-direction:column;gap:2px"></div>
+        <div class="row"><button class="btn" id="retryBtn">Opnieuw proberen</button><button class="btn" id="hideBanner">Verbergen</button></div>
       </div>
       <button class="ctl listbtn" id="listBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span id="listCount">0</span>&nbsp;toestellen</button>
       <aside class="aclist" id="acList" hidden>
@@ -1061,7 +1062,7 @@ const Online={
   async route(cs){try{const j=await getJSON("https://api.adsbdb.com/v0/callsign/"+encodeURIComponent(cs.trim()));return j?.response?.flightroute||null}catch{return null}},
   async photo({hex,reg}){const urls=[];if(hex)urls.push("https://api.planespotters.net/pub/photos/hex/"+hex);if(reg)urls.push("https://api.planespotters.net/pub/photos/reg/"+encodeURIComponent(reg));
     for(const u of urls){try{const j=await getJSON(u);const p=j?.photos?.[0];if(p)return{src:p.thumbnail_large?.src||p.thumbnail?.src,link:p.link,by:p.photographer}}catch{}}return null},
-  async live(reg){for(const u of["https://api.adsb.lol/v2/reg/"+encodeURIComponent(reg),"https://api.airplanes.live/v2/reg/"+encodeURIComponent(reg)]){try{const j=await getJSON(u,5000);return(j.ac||[])[0]||null}catch{}}return null}
+  async live(reg){for(const u of["https://api.adsb.lol/v2/reg/"+encodeURIComponent(reg),"https://opendata.adsb.fi/api/v2/registration/"+encodeURIComponent(reg),"https://api.airplanes.live/v2/reg/"+encodeURIComponent(reg)]){try{const j=await getJSON(u,5000);return(j.ac||[])[0]||null}catch{}}return null}
 };
 /* full lookup: local first, then online */
 async function lookupReg(input,onUpdate){
@@ -1118,16 +1119,37 @@ function initMap(){
   $("#legend").innerHTML=[["--alt0","grond"],["--alt1","<5k ft"],["--alt2","<15k"],["--alt3","<30k"],["--alt4","30k+"]].map(([v,t])=>`<span><i style="background:var(${v})"></i>${t}</span>`).join("");
 }
 function setTiles(){if(!map)return;if(tileLayer)map.removeLayer(tileLayer);
-  tileLayer=L.tileLayer(`https://{s}.basemaps.cartocdn.com/${isDark()?"dark_all":"light_all"}/{z}/{x}/{y}{r}.png`,{subdomains:"abcd",maxZoom:18,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a> · data adsb.lol / airplanes.live'}).addTo(map)}
+  document.getElementById("map").classList.toggle("dark-tiles",isDark());
+  tileLayer=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · <span id="srcAttr">ADS-B</span>'}).addTo(map)}
 function setCenter(lat,lon,code){center={lat,lon,code};LS.set("center",center);$("#signLoc").textContent=code||"GPS";
   if(map){map.setView([lat,lon],Math.max(map.getZoom(),8));rangeCircle.setLatLng([lat,lon])}poll()}
-async function fetchLive(){const {lat,lon}=center;const nm=+$("#radiusSel").value;
-  const urls=[`https://api.adsb.lol/v2/lat/${lat.toFixed(4)}/lon/${lon.toFixed(4)}/dist/${nm}`,`https://api.airplanes.live/v2/point/${lat.toFixed(4)}/${lon.toFixed(4)}/${Math.min(nm,250)}`];
-  for(const u of urls){try{const j=await getJSON(u,8000);if(Array.isArray(j.ac))return{ac:j.ac,src:u.includes("adsb.lol")?"adsb.lol":"airplanes.live"}}catch{}}throw new Error("offline")}
+/* live sources: direct first, OpenSky, then via public CORS relays */
+const SRC=[
+  {n:"adsb.lol",u:(a,o,r)=>`https://api.adsb.lol/v2/point/${a}/${o}/${r}`},
+  {n:"adsb.fi",u:(a,o,r)=>`https://opendata.adsb.fi/api/v2/lat/${a}/lon/${o}/dist/${r}`},
+  {n:"airplanes.live",u:(a,o,r)=>`https://api.airplanes.live/v2/point/${a}/${o}/${r}`},
+  {n:"adsb.one",u:(a,o,r)=>`https://api.adsb.one/v2/point/${a}/${o}/${r}`},
+  {n:"OpenSky",sky:true,slow:true,u:(a,o,r)=>{const dl=r/60,dn=r/(60*Math.cos(a*Math.PI/180));return`https://opensky-network.org/api/states/all?lamin=${(a-dl).toFixed(3)}&lomin=${(o-dn).toFixed(3)}&lamax=${(+a+dl).toFixed(3)}&lomax=${(+o+dn).toFixed(3)}`}},
+  {n:"adsb.lol via relay",slow:true,u:(a,o,r)=>"https://api.allorigins.win/raw?url="+encodeURIComponent(`https://api.adsb.lol/v2/point/${a}/${o}/${r}`)},
+  {n:"airplanes.live via relay",slow:true,u:(a,o,r)=>"https://api.codetabs.com/v1/proxy/?quest="+encodeURIComponent(`https://api.airplanes.live/v2/point/${a}/${o}/${r}`)}
+];
+let srcIdx=LS.get("srcIdx",0),DIAG={},liveSlow=false;
+function skyToAc(j){return(j.states||[]).map(s=>({hex:s[0],flight:s[1]||"",lat:s[6],lon:s[5],alt_baro:s[8]?"ground":s[7]!=null?Math.round(s[7]*3.28084):null,gs:s[9]!=null?s[9]*1.94384:null,track:s[10],baro_rate:s[11]!=null?Math.round(s[11]*196.85):null,squawk:s[14]||""}))}
+async function trySrc(i,a,o,r){const s=SRC[i];try{const j=await getJSON(s.u(a,o,r),s.slow?12000:8000);
+    const ac=s.sky?skyToAc(j):j.ac;if(!Array.isArray(ac))throw new Error("onverwacht antwoord");DIAG[s.n]="ok · "+ac.length+" toestellen";return ac}
+  catch(e){DIAG[s.n]=e.name==="AbortError"?"time-out":/HTTP/.test(e.message)?e.message:e instanceof SyntaxError?"geen geldige data":"geblokkeerd of onbereikbaar";return null}}
+async function fetchLive(){const a=center.lat.toFixed(4),o=center.lon.toFixed(4),r=Math.min(+$("#radiusSel").value,250);
+  const order=[srcIdx,...SRC.keys()].filter((v,i,arr)=>arr.indexOf(v)===i&&SRC[v]);
+  for(const i of order){const ac=await trySrc(i,a,o,r);if(ac){if(i!==srcIdx){srcIdx=i;LS.set("srcIdx",i)}liveSlow=!!SRC[i].slow;return{ac,src:SRC[i].n}}}
+  throw new Error("offline")}
+function showDiag(){$("#bannerTitle").textContent="Geen live data";
+  $("#bannerText").textContent=window.claude?"Binnen de Claude-app kan de pagina geen live bronnen bereiken. Open de versie op je eigen website.":"Geen enkele bron gaf antwoord. Staat er een adblocker of schild aan (bv. Brave Shields)? Zet die uit voor deze site en probeer opnieuw.";
+  $("#diag").innerHTML=SRC.map(s=>`<span>${esc(s.n)}: ${esc(DIAG[s.n]||"niet geprobeerd")}</span>`).join("")}
 async function poll(){clearTimeout(timer);
-  try{const {ac,src}=await fetchLive();setNet(true,"live · "+src);$("#offlineBanner").hidden=true;updateAircraft(ac)}
-  catch{if(ONLINE!==true||!AC.length){setNet(false,"geen live data");$("#offlineBanner").hidden=false}}
-  timer=setTimeout(()=>{if(!document.hidden)poll();else timer=setTimeout(poll,8000)},6000)}
+  try{const {ac,src}=await fetchLive();setNet(true,"live · "+src);const at=document.getElementById("srcAttr");if(at)at.textContent="live: "+src;$("#offlineBanner").hidden=true;updateAircraft(ac)}
+  catch{if(ONLINE!==true||!AC.length){setNet(false,"geen live data");showDiag();if(!bannerHidden)$("#offlineBanner").hidden=false}}
+  timer=setTimeout(()=>{if(!document.hidden)poll();else timer=setTimeout(poll,10000)},liveSlow?15000:6000)}
+let bannerHidden=false;
 function updateAircraft(list){
   AC=list.filter(a=>a.lat!=null&&a.lon!=null).map(a=>({...a,dist:hav(center.lat,center.lon,a.lat,a.lon),reg:a.r||DB.byHex.get((a.hex||"").toUpperCase())?.reg||"",type:a.t||DB.byHex.get((a.hex||"").toUpperCase())?.type||""})).sort((a,b)=>a.dist-b.dist);
   if(!map){$("#listCount").textContent=AC.length;return}
@@ -1185,7 +1207,7 @@ $("#locInput").addEventListener("blur",()=>setTimeout(()=>$("#locSuggest").hidde
 $("#radiusSel").onchange=()=>{rangeCircle&&rangeCircle.setRadius(+$("#radiusSel").value*1852);LS.set("radius",$("#radiusSel").value);poll()};
 $("#gpsBtn").onclick=()=>{if(!navigator.geolocation){toast("Locatie is niet beschikbaar in deze weergave");return}
   navigator.geolocation.getCurrentPosition(p=>setCenter(p.coords.latitude,p.coords.longitude,nearestAirport(p.coords.latitude,p.coords.longitude)?.code||"GPS"),()=>toast("Locatie geweigerd. Kies een luchthaven in het zoekveld."),{timeout:8000})};
-$("#retryBtn").onclick=()=>poll();
+$("#retryBtn").onclick=()=>{bannerHidden=false;$("#netTxt").textContent="opnieuw…";poll()};$("#hideBanner").onclick=()=>{bannerHidden=true;$("#offlineBanner").hidden=true};
 $("#listBtn").onclick=()=>{$("#acList").hidden=false;renderAcList()};$("#closeList").onclick=()=>$("#acList").hidden=true;$("#onlyNew").onchange=renderAcList;
 
 /* ---------- spot form ---------- */
@@ -1397,7 +1419,7 @@ function openType(code){const d=prettyType(code);const mine=SPOTS.filter(s=>s.ty
   openSheet(`<div class="lbl">Vliegtuigtype</div><h2>${esc(code)}${d?" · "+esc(d):""}</h2>`,body)}
 
 
-/* ---------- PWA: offline cache, install button, deep links ---------- */
+/* ---------- PWA ---------- */
 if("serviceWorker" in navigator&&location.protocol==="https:"){navigator.serviceWorker.register("sw.js").catch(()=>{})}
 let installEvt=null;addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e;$("#installBtn").hidden=false});
 $("#installBtn").onclick=async()=>{if(!installEvt)return;installEvt.prompt();await installEvt.userChoice.catch(()=>{});installEvt=null;$("#installBtn").hidden=true};
