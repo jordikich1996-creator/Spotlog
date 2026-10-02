@@ -1111,8 +1111,14 @@ async function loadData(){
 const typeDesc=t=>(DB.types[t]?.[0])||"";
 function prettyType(code){const d=typeDesc(code);return d?d.replace(/\b([A-Z][A-Z\-]+)\b/g,w=>w.length<=3||/\d/.test(w)?w:w[0]+w.slice(1).toLowerCase()):""}
 function airlineFromCallsign(cs){cs=(cs||"").trim().toUpperCase();const m=cs.match(/^([A-Z]{3})\d/);return m?DB.alByIcao.get(m[1])||null:null}
-function airlineFromOwner(owner){if(!owner)return null;const o=owner.toLowerCase();let best=null;
-  for(const a of DB.airlines){if(!a.active)continue;const n=a.name.toLowerCase();if(n.length>3&&(o.includes(n)||n.includes(o))){if(!best||a.info&&!best.info||n.length>best.name.length)best=a}}return best}
+/* match an owner name to an airline: exact name first, then an airline name inside the owner
+   ("Deutsche Lufthansa" -> Lufthansa, longest wins), and only then an airline that merely contains
+   the owner name (shortest wins, so "Lufthansa" never becomes "Lufthansa CityLine") */
+function airlineFromOwner(owner){if(!owner)return null;const o=owner.toLowerCase().trim();let best=null,bs=-1;
+  for(const a of DB.airlines){if(!a.active)continue;const n=a.name.toLowerCase().trim();if(n.length<=3)continue;
+    let s=-1;if(n===o)s=3000;else if(o.includes(n))s=2000+n.length;else if(n.includes(o))s=1000-n.length;
+    if(s<0)continue;if(a.info)s+=0.5;if(s>bs){bs=s;best=a}}
+  return best}
 
 /* ---------- storage (IndexedDB with memory fallback) ---------- */
 const Store=(()=>{let db=null,mem={spots:new Map(),photos:new Map()};
