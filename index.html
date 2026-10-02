@@ -112,6 +112,23 @@ a{color:var(--link)}
 .acrow .sub{font-size:12px;color:var(--muted);grid-column:2}
 .acrow .rt{text-align:right;font:500 12px var(--f-mono);color:var(--muted);grid-row:span 2}
 .plane{width:28px;height:28px;display:block}
+.plane.flash svg{animation:acflash .5s ease-in-out 12 alternate}
+@keyframes acflash{to{filter:drop-shadow(0 0 10px var(--sign)) drop-shadow(0 0 4px var(--sign)) brightness(1.5)}}
+@media (prefers-reduced-motion:reduce){.plane.flash svg{animation:none;filter:drop-shadow(0 0 8px var(--sign))}}
+.overhead{position:absolute;top:64px;left:10px;right:10px;z-index:650;background:var(--signbar);color:#fff;border-left:5px solid var(--sign);border-radius:10px;padding:12px 14px;box-shadow:var(--shadow);display:flex;gap:12px;align-items:center;cursor:pointer;text-align:left;border-top:0;border-right:0;border-bottom:0;width:calc(100% - 20px)}
+.overhead .oh-t{font:700 13px var(--f-display);letter-spacing:.1em;text-transform:uppercase;color:var(--sign)}
+.overhead .oh-cs{font:600 20px var(--f-mono)}
+.overhead .oh-sub{font-size:13px;color:#C9CFCB}
+.overhead svg{width:34px;height:34px;flex:none;color:var(--sign)}
+.legbtn{position:absolute;left:10px;bottom:92px;z-index:499;min-height:34px;padding:0 10px;font-size:13px}
+.legend-card{position:absolute;left:10px;bottom:92px;z-index:520;width:min(300px,calc(100% - 20px));background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:12px 14px;display:flex;flex-direction:column;gap:10px;font-size:13px;max-height:calc(100% - 170px);overflow:auto}
+.legend-card h4{margin:0;font:700 15px var(--f-display);letter-spacing:.06em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+.legend-card h4 button{background:none;border:0;cursor:pointer;color:var(--muted);font-size:20px;line-height:1;padding:0 4px}
+.lg-row{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:center}
+.lg-row .sw{width:14px;height:14px;border-radius:3px;justify-self:center}
+.lg-row .sub{color:var(--muted);font-size:12px}
+.lg-sep{border-top:1px solid var(--line)}
+.ctl.on{background:var(--sign);border-color:var(--sign);color:var(--sign-ink)}
 .me{width:22px;height:22px;position:relative}
 .me i{position:absolute;inset:4px;border-radius:50%;background:var(--me);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5)}
 .me b{position:absolute;inset:0;border-radius:50%;background:var(--me);opacity:.35;animation:mepulse 2s ease-out infinite}
@@ -863,7 +880,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <label class="ctl" for="radiusSel" title="Straal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
           <select id="radiusSel" aria-label="Straal in zeemijl"><option value="10">10 NM</option><option value="25" selected>25 NM</option><option value="50">50 NM</option><option value="100">100 NM</option><option value="200">200 NM</option></select></label>
         <button class="ctl" id="gpsBtn" title="Mijn locatie"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg><span class="hide-sm">GPS</span></button>
+        <button class="ctl" id="alertBtn" title="Melding bij overvliegen" aria-label="Melding bij overvliegen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 21h4"/></svg><span id="alertBtnTxt">uit</span></button>
       </div>
+      <button class="overhead" id="overhead" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="oh-t" id="ohT">Boven je</span><span class="oh-cs" id="ohCs"></span><span class="oh-sub" id="ohSub"></span></span></button>
       <div class="banner" id="offlineBanner" hidden>
         <b id="bannerTitle">Geen live data</b>
         <span id="bannerText">Geen enkele live bron gaf antwoord.</span>
@@ -871,6 +890,23 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <div class="field"><label class="lbl" for="proxyInput">Eigen proxy (Cloudflare Worker)</label>
           <div class="row" style="flex-wrap:nowrap"><input id="proxyInput" class="input mono" placeholder="https://spotlog.jouwnaam.workers.dev" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url"><button class="btn primary" id="proxySave">Opslaan</button></div></div>
         <div class="row"><button class="btn" id="retryBtn">Opnieuw proberen</button><button class="btn" id="hideBanner">Verbergen</button></div>
+      </div>
+      <button class="ctl legbtn" id="legBtn" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>Legenda</button>
+      <div class="legend-card" id="legCard" hidden>
+        <h4>Legenda <button id="legClose" aria-label="Legenda sluiten">×</button></h4>
+        <div class="lbl">Kleur = hoogte</div>
+        <div class="lg-row"><span class="sw" style="background:var(--alt0)"></span><span>Op de grond <span class="sub">· taxiënd of geparkeerd</span></span></div>
+        <div class="lg-row"><span class="sw" style="background:var(--alt1)"></span><span>Onder 5.000 ft <span class="sub">· ± 1,5 km · landen of opstijgen</span></span></div>
+        <div class="lg-row"><span class="sw" style="background:var(--alt2)"></span><span>5.000 – 15.000 ft <span class="sub">· ± 1,5–4,5 km · stijgen of dalen</span></span></div>
+        <div class="lg-row"><span class="sw" style="background:var(--alt3)"></span><span>15.000 – 30.000 ft <span class="sub">· ± 4,5–9 km</span></span></div>
+        <div class="lg-row"><span class="sw" style="background:var(--alt4)"></span><span>Boven 30.000 ft <span class="sub">· kruishoogte, doorvliegend</span></span></div>
+        <div class="lg-sep"></div>
+        <div class="lg-row"><svg viewBox="0 0 32 32" width="20" height="20"><path fill="var(--alt1)" stroke="rgba(0,0,0,.5)" d="M16 2c1.2 0 2 1.4 2 3v7.2l10 5.6v2.8l-10-3.1v6.3l3 2.3v2.3l-5-1.4-5 1.4v-2.3l3-2.3v-6.3L4 20.6v-2.8l10-5.6V5c0-1.6.8-3 2-3z"/></svg><span>Vliegtuig <span class="sub">· neus wijst de vliegrichting aan; groter = widebody (A330, 747, 777…)</span></span></div>
+        <div class="lg-row"><span class="me" style="transform:scale(.8)"><i></i></span><span>Jij <span class="sub">· je GPS-positie</span></span></div>
+        <div class="lg-row"><svg viewBox="0 0 20 20" width="18" height="18"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--sign)" stroke-width="2" stroke-dasharray="3 3"/></svg><span>Radarbereik <span class="sub">· de straal die je bovenin kiest</span></span></div>
+        <div class="lg-row"><svg viewBox="0 0 20 20" width="16" height="16"><circle cx="10" cy="10" r="5" fill="var(--surface)" stroke="var(--muted)" stroke-width="2"/></svg><span>Luchthaven <span class="sub">· tik voor ICAO-code</span></span></div>
+        <div class="lg-row"><span class="chip new" style="font-size:9px;padding:0 4px">NIEUW</span><span>Registratie die je nog nooit gespot hebt</span></div>
+        <div class="lg-row"><span class="chip mil" style="font-size:9px;padding:0 4px">militair</span><span>Militair toestel</span></div>
       </div>
       <button class="ctl listbtn" id="listBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span id="listCount">0</span>&nbsp;toestellen</button>
       <aside class="aclist" id="acList" hidden>
@@ -1168,19 +1204,19 @@ function showDiag(){$("#bannerTitle").textContent="Geen live data";
 async function poll(){clearTimeout(timer);
   try{const {ac,src}=await fetchLive();setNet(true,"live · "+src);const at=document.getElementById("srcAttr");if(at)at.textContent="live: "+src;$("#offlineBanner").hidden=true;updateAircraft(ac)}
   catch{if(ONLINE!==true||!AC.length){setNet(false,"geen live data");showDiag();if(!bannerHidden)$("#offlineBanner").hidden=false}}
-  timer=setTimeout(()=>{if(!document.hidden)poll();else timer=setTimeout(poll,10000)},liveSlow?15000:6000)}
+  timer=setTimeout(()=>{if(!document.hidden||ALERT.on)poll();else timer=setTimeout(poll,10000)},liveSlow?15000:6000)}
 let bannerHidden=false;
 function updateAircraft(list){
   AC=list.filter(a=>a.lat!=null&&a.lon!=null).map(a=>({...a,dist:hav(center.lat,center.lon,a.lat,a.lon),reg:a.r||DB.byHex.get((a.hex||"").toUpperCase())?.reg||"",type:a.t||DB.byHex.get((a.hex||"").toUpperCase())?.type||""})).sort((a,b)=>a.dist-b.dist);
   if(!map){$("#listCount").textContent=AC.length;return}
   const seen=new Set();
   for(const a of AC){seen.add(a.hex);const col=cssv(altColorVar(a.alt_baro));const heavy=/^(A3[3-8]|B7[4-8]|A35|B77|B78|A34)/.test(a.type);
-    const html=`<div class="plane${a.hex===selectedHex?" sel":""}">${planeSVG(col,heavy).replace("<svg",`<svg style="transform:rotate(${a.track||a.true_heading||0}deg)"`)}</div>`;
+    const html=`<div class="plane${a.hex===selectedHex?" sel":""}${(flashUntil.get(a.hex)||0)>Date.now()?" flash":""}">${planeSVG(col,heavy).replace("<svg",`<svg style="transform:rotate(${a.track||a.true_heading||0}deg)"`)}</div>`;
     let m=markers.get(a.hex);const icon=L.divIcon({html,className:"",iconSize:[28,28],iconAnchor:[14,14]});
     if(!m){m=L.marker([a.lat,a.lon],{icon}).addTo(map);m.on("click",()=>openAircraft(m._hex));markers.set(a.hex,m)}else{m.setLatLng([a.lat,a.lon]);m.setIcon(icon)}
     m._hex=a.hex;m.bindTooltip(`${(a.flight||"").trim()||a.reg||a.hex} · ${a.type||"?"}`,{direction:"top",offset:[0,-12]})}
   for(const [k,m] of markers)if(!seen.has(k)){map.removeLayer(m);markers.delete(k)}
-  $("#listCount").textContent=AC.length;if(!$("#acList").hidden)renderAcList()}
+  $("#listCount").textContent=AC.length;if(!$("#acList").hidden)renderAcList();checkOverhead()}
 function altTxt(a){return a==="ground"?"grond":a==null?"–":a.toLocaleString("nl-NL")+" ft"}
 function seenChip(reg){if(!reg)return"";const n=seenCount.get(normReg(reg))||0;return n?`<span class="chip seen">${n}× gezien</span>`:`<span class="chip new">nieuw</span>`}
 function renderAcList(){const only=$("#onlyNew").checked;const items=AC.filter(a=>!only||(a.reg&&!seenCount.get(normReg(a.reg))));
@@ -1225,6 +1261,52 @@ $("#locInput").addEventListener("input",e=>{const r=apSearch(e.target.value);con
   box.querySelectorAll("button").forEach(b=>b.onclick=()=>{const a=DB.apByCode.get(b.dataset.c);box.hidden=true;e.target.value="";e.target.blur();setCenter(a.lat,a.lon,a.code)})});
 $("#locInput").addEventListener("blur",()=>setTimeout(()=>$("#locSuggest").hidden=true,200));
 $("#radiusSel").onchange=()=>{rangeCircle&&rangeCircle.setRadius(+$("#radiusSel").value*1852);LS.set("radius",$("#radiusSel").value);poll()};
+/* overhead alerts */
+const ALERT=Object.assign({on:false,km:3,onlyNew:false,sound:true,awake:false},LS.get("alert",{}));
+const alerted=new Map(),flashUntil=new Map();let audioCtx=null,wakeLock=null,ohTimer=null;
+function beep(){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();const t0=audioCtx.currentTime;
+  [0,.22].forEach((d,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type="sine";o.frequency.value=i?1175:880;
+    g.gain.setValueAtTime(.0001,t0+d);g.gain.exponentialRampToValueAtTime(.35,t0+d+.02);g.gain.exponentialRampToValueAtTime(.0001,t0+d+.35);o.connect(g).connect(audioCtx.destination);o.start(t0+d);o.stop(t0+d+.4)})}catch{}}
+function setAlertUI(){$("#alertBtn").classList.toggle("on",ALERT.on);$("#alertBtnTxt").textContent=ALERT.on?ALERT.km+" km":"uit"}
+async function keepAwake(){try{if(ALERT.on&&ALERT.awake&&"wakeLock" in navigator&&!document.hidden){wakeLock=await navigator.wakeLock.request("screen")}else if(wakeLock){await wakeLock.release();wakeLock=null}}catch{}}
+document.addEventListener("visibilitychange",keepAwake);
+function checkOverhead(){if(!ALERT.on||!AC.length)return;const ref=me||center;const now=Date.now();
+  for(const a of AC){if(a.alt_baro==="ground"||a.alt_baro==null)continue;const km=hav(ref.lat,ref.lon,a.lat,a.lon)*1.852;if(km>ALERT.km)continue;
+    if(ALERT.onlyNew&&a.reg&&seenCount.get(normReg(a.reg)))continue;
+    if(now-(alerted.get(a.hex)||0)<20*60e3)continue;alerted.set(a.hex,now);fireAlert(a,km);break}}
+function fireAlert(a,km){const al=airlineFromCallsign(a.flight);const cs=(a.flight||"").trim()||a.reg||a.hex;const isNew=a.reg&&!seenCount.get(normReg(a.reg));
+  const type=prettyType(a.type)||a.type||"onbekend type";
+  const sub=[al?.name,type,altTxt(a.alt_baro),km.toFixed(1)+" km"].filter(Boolean).join(" · ");
+  flashUntil.set(a.hex,Date.now()+7000);
+  $("#ohT").textContent=isNew?"Nieuw voor jou · boven je":"Boven je";$("#ohCs").textContent=cs+(a.reg&&a.reg!==cs?"  "+a.reg:"");$("#ohSub").textContent=sub;
+  $("#overhead").hidden=false;$("#overhead").onclick=()=>{$("#overhead").hidden=true;showTab("radar");openAircraft(a.hex)};
+  clearTimeout(ohTimer);ohTimer=setTimeout(()=>$("#overhead").hidden=true,15000);
+  try{navigator.vibrate&&navigator.vibrate([250,120,250,120,400])}catch{}
+  if(ALERT.sound)beep();
+  if(document.hidden&&"Notification" in window&&Notification.permission==="granted"){const title=(isNew?"Nieuw: ":"Boven je: ")+cs;const opts={body:sub,icon:"icon-192.png",badge:"favicon-32.png",tag:"overhead-"+a.hex,vibrate:[250,120,250]};
+    (navigator.serviceWorker?.ready||Promise.reject()).then(r=>r.showNotification(title,opts)).catch(()=>{try{new Notification(title,opts)}catch{}})}}
+function openAlertSettings(){const body=h(`
+  <label class="check" style="font-size:16px"><input type="checkbox" id="al-on" ${ALERT.on?"checked":""}> <b>Melding als er een toestel over me heen vliegt</b></label>
+  <div class="field"><label class="lbl" for="al-km">Binnen welke afstand van jou</label>
+    <select id="al-km" class="input">${[1,2,3,5,8,10].map(k=>`<option value="${k}" ${ALERT.km==k?"selected":""}>${k} km</option>`).join("")}</select></div>
+  <label class="check"><input type="checkbox" id="al-new" ${ALERT.onlyNew?"checked":""}> Alleen toestellen die ik nog nooit gespot heb</label>
+  <label class="check"><input type="checkbox" id="al-sound" ${ALERT.sound?"checked":""}> Geluid afspelen</label>
+  <label class="check"><input type="checkbox" id="al-awake" ${ALERT.awake?"checked":""}> Scherm aan laten tijdens het spotten</label>
+  <div class="note small">Je krijgt een trilling, een geluid en een gele balk bovenin; het toestel knippert op de kaart. De afstand wordt gemeten vanaf je GPS-stip${me?"":" (nog geen GPS: dan vanaf het midden van de radar)"}. Meldingen werken zolang de app open is. Zet je scherm uit of sluit je de app, dan kan je telefoon de radar pauzeren en mis je meldingen; zet daarom "Scherm aan laten" aan.</div>
+  <div class="row"><button class="btn primary" id="al-save">Opslaan</button><button class="btn" id="al-test">Test melding</button></div>`);
+  const sh=openSheet(`<div class="lbl">Radar</div><h2>Melding bij overvliegen</h2>`,body);const q=s=>body.querySelector(s);
+  q("#al-test").onclick=()=>{try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch{}
+    const a=AC.slice().sort((x,y)=>x.dist-y.dist).find(x=>x.alt_baro!=="ground");if(!a){toast("Geen toestel in de lucht om mee te testen");return}
+    const ref=me||center;const s=ALERT.sound;ALERT.sound=q("#al-sound").checked;sh.close();fireAlert(a,hav(ref.lat,ref.lon,a.lat,a.lon)*1.852);ALERT.sound=s};
+  q("#al-save").onclick=async()=>{ALERT.on=q("#al-on").checked;ALERT.km=+q("#al-km").value;ALERT.onlyNew=q("#al-new").checked;ALERT.sound=q("#al-sound").checked;ALERT.awake=q("#al-awake").checked;
+    LS.set("alert",ALERT);setAlertUI();
+    if(ALERT.on){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch{}
+      try{if("Notification" in window&&Notification.permission==="default")await Notification.requestPermission()}catch{}
+      if(!me)$("#gpsBtn").click()}
+    keepAwake();sh.close();toast(ALERT.on?`Meldingen aan: binnen ${ALERT.km} km`:"Meldingen uit");checkOverhead()}}
+$("#alertBtn").onclick=openAlertSettings;
+function setLegend(open){$("#legCard").hidden=!open;$("#legBtn").hidden=open;$("#legBtn").setAttribute("aria-expanded",open);LS.set("legend",open)}
+$("#legBtn").onclick=()=>setLegend(true);$("#legClose").onclick=()=>setLegend(false);
 /* you-are-here dot */
 let me=null,meMarker=null,meAcc=null,watchId=null;
 function showMe(p){me={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy||0};LS.set("meOn",true);if(!map)return;
@@ -1460,7 +1542,7 @@ addEventListener("hashchange",()=>{const t=location.hash.slice(1);if(TABN[t])sho
   try{await loadData()}catch(e){$("#loading").innerHTML=`<div class="empty"><b>Database kon niet laden</b><span>Deze browser ondersteunt geen gzip-decompressie. Gebruik een recente Chrome, Edge, Safari of Firefox.</span></div>`;return}
   await Store.open();await reloadSpots();$("#loading").remove();
   $("#radiusSel").value=LS.get("radius","25");$("#signLoc").textContent=center.code||"GPS";
-  initMap();poll();
+  initMap();setLegend(LS.get("legend",true));setAlertUI();keepAwake();poll();
   /* first visit: start where the spotter actually is */
   if(LS.get("meOn",false))watchMe();
   if(FIRST_RUN&&navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{showMe(p);watchMe();const a=nearestAirport(p.coords.latitude,p.coords.longitude);setCenter(p.coords.latitude,p.coords.longitude,a?.code||"GPS");toast("Radar staat op je huidige locatie")},()=>{},{timeout:8000,maximumAge:600000});

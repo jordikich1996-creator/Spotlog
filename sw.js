@@ -1,5 +1,5 @@
 // Spotlog Europa service worker: app shell offline, map tiles cached, live data always fresh.
-const VERSION = "spotlog-v8";
+const VERSION = "spotlog-v10";
 const SHELL = [
   "./", "./index.html", "./manifest.webmanifest",
   "./icon-192.png", "./icon-512.png", "./maskable-192.png", "./maskable-512.png",
@@ -46,4 +46,12 @@ self.addEventListener("fetch", e => {
       return hit || net;
     }));
   }
+});
+// tap on an overhead notification: bring the app to the front
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+    for (const c of list) if ("focus" in c) return c.focus();
+    return self.clients.openWindow("./");
+  }));
 });
