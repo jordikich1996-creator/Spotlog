@@ -1138,6 +1138,10 @@ let ONLINE=null;
 function setNet(state,txt){ONLINE=state;$("#netDot").className="dot "+(state===true?"on":state===false?"off":"");$("#netTxt").textContent=txt}
 const Online={
   async aircraft(q){try{const j=await getJSON("https://api.adsbdb.com/v0/aircraft/"+encodeURIComponent(q));return j?.response?.aircraft||null}catch{return null}},
+  /* typed without a dash? also try the usual dash positions: B6113 -> B-6113, D-AIQU, 9HABC -> 9H-ABC */
+  async aircraftAny(q){const s=String(q).trim().toUpperCase();const c=[s];const n=normReg(s);
+    if(!s.includes("-")&&!/^[0-9A-F]{6}$/.test(n)&&n.length>3){c.push(n[0]+"-"+n.slice(1),n.slice(0,2)+"-"+n.slice(2))}
+    for(const x of [...new Set(c)]){const r=await Online.aircraft(x);if(r)return r}return null},
   async route(cs){try{const j=await getJSON("https://api.adsbdb.com/v0/callsign/"+encodeURIComponent(cs.trim()));return j?.response?.flightroute||null}catch{return null}},
   async photo({hex,reg}){const urls=[];if(hex)urls.push("https://api.planespotters.net/pub/photos/hex/"+hex);if(reg)urls.push("https://api.planespotters.net/pub/photos/reg/"+encodeURIComponent(reg));
     for(const u of urls){try{const j=await getJSON(u);const p=j?.photos?.[0];if(p)return{src:p.thumbnail_large?.src||p.thumbnail?.src,link:p.link,by:p.photographer}}catch{}}return null},
@@ -1155,11 +1159,11 @@ async function lookupReg(input,onUpdate){
   const reg=res.local?.reg||input;
   /* each part shows up as soon as it arrives instead of waiting for the slowest */
   const pick=()=>{if(res.live?.flight){const a=airlineFromCallsign(res.live.flight);if(a)res.airline=a}
-    const fc=res.online?.registered_owner_operator_flag_code;if(!res.airline&&fc&&DB.alByIcao.get(fc))res.airline=DB.alByIcao.get(fc);
-    if(!res.airline&&res.online?.registered_owner)res.airline=airlineFromOwner(res.online.registered_owner)};
+    if(!res.airline&&res.online?.registered_owner)res.airline=airlineFromOwner(res.online.registered_owner);
+    const fc=res.online?.registered_owner_operator_flag_code;if(!res.airline&&fc&&DB.alByIcao.get(fc))res.airline=DB.alByIcao.get(fc)};
   const step=(pr,key)=>pr.then(v=>{res[key]=v;if(v)setNet(true,"online");try{pick();if(!res.done)onUpdate&&onUpdate(res)}catch(e){console.warn("lookup",key,e)}}).catch(e=>console.warn("lookup",key,e));
   /* never keep the spinner going: stop after 8 s even if a source hangs */
-  await Promise.race([Promise.all([step(Online.aircraft(res.local?.hex||reg),"online"),step(Online.live(reg),"live"),step(Online.photo({hex:res.local?.hex,reg}),"photo")]),new Promise(r=>setTimeout(r,8000))]);
+  await Promise.race([Promise.all([step(res.local?Online.aircraft(res.local.hex):Online.aircraftAny(reg),"online"),step(Online.live(reg),"live"),step(Online.photo({hex:res.local?.hex,reg}),"photo")]),new Promise(r=>setTimeout(r,8000))]);
   res.done=true;try{onUpdate&&onUpdate(res)}catch(e){console.warn(e)}return res}
 
 /* ---------- sheets ---------- */
@@ -1518,14 +1522,15 @@ function openSpotForm(pre={},existing=null){ensureDatalists();
     auto.className="autofill";auto.innerHTML=`<div class="spin"></div>Opzoeken…`;
     await lookupReg(v,res=>{if(normReg(q("#f-reg").value)!==normReg(v))return;const l=res.local;
       if(l){if(normReg(q("#f-reg").value)===normReg(l.reg))q("#f-reg").value=l.reg;fill("#f-type",l.type);fill("#f-hex",l.hex)}
-      if(res.online){fill("#f-type",res.online.icao_type);fill("#f-hex",res.online.mode_s)}
+      if(res.online){fill("#f-type",res.online.icao_type);fill("#f-hex",res.online.mode_s);
+        if(res.online.registration&&normReg(res.online.registration)===normReg(q("#f-reg").value))q("#f-reg").value=res.online.registration}
       if(res.live?.flight)fill("#f-cs",res.live.flight.trim());
       if(res.airline)fill("#f-airline",airlineLabel(res.airline.icao));
       const bits=[];if(l)bits.push(`${prettyType(l.type)||l.type}${l.year?" · bouwjaar "+l.year:""}`);else if(res.online)bits.push(`${res.online.manufacturer||""} ${res.online.type||""}`.trim());
       if(res.online?.registered_owner)bits.push(res.online.registered_owner);
       const n=seenCount.get(normReg(l?.reg||v))||0;if(!existing)bits.push(n?`al ${n}× gespot`:"nieuw voor jou");
       if(!res.done){auto.className="autofill"+(l?" ok":"");auto.innerHTML=(l?"✓ "+esc(bits.join(" · "))+" · ":"")+`<div class="spin"></div>online zoeken…`}
-      else{auto.className="autofill"+(l||res.online?" ok":"");auto.textContent=(l||res.online)?"✓ "+bits.join(" · "):"Niet gevonden in de database. Vul het type zelf in."}})};
+      else{auto.className="autofill"+(l||res.online?" ok":"");auto.textContent=(l||res.online)?"✓ "+bits.join(" · "):(ONLINE===false?"Niet in de Europese database en online niet bereikbaar. Vul het type zelf in.":"Niet gevonden, ook niet online. Controleer de registratie (met streepje, bv. B-6113) of vul het type zelf in.")}})};
   q("#f-reg").addEventListener("input",e=>{const el=e.target,pos=el.selectionStart;if(el.value!==el.value.toUpperCase()){el.value=el.value.toUpperCase();try{el.setSelectionRange(pos,pos)}catch{}}clearTimeout(tmr);tmr=setTimeout(doLookup,450)});
   if(q("#f-reg").value&&!existing)doLookup();
   setupOCR(q("#f-ocrBtn"),q("#f-ocr"),r=>{q("#f-reg").value=r.registration;if(r.airline){const a=parseAirline(r.airline)||DB.airlines.find(x=>x.name.toLowerCase()===r.airline.toLowerCase())?.icao;if(a)fill("#f-airline",airlineLabel(a))}doLookup()},async f=>{const b=await resizeImage(f);newBlobs.push({blob:b,url:URL.createObjectURL(b)});drawThumbs()});
