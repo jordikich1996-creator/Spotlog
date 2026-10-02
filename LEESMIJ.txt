@@ -1,0 +1,26 @@
+SPOTLOG EUROPA — installeren als app (gratis)
+
+Een app op je beginscherm werkt alleen vanaf een https-adres. Zo zet je hem gratis online:
+
+OPTIE A — Netlify Drop (2 minuten, geen technische kennis)
+1. Pak deze zip uit op een computer.
+2. Ga naar https://app.netlify.com/drop
+3. Sleep de hele map "spotlog-pwa" in het venster.
+4. Je krijgt een adres zoals https://iets-willekeurigs.netlify.app
+   Maak een gratis account aan om de site te bewaren (anders verdwijnt hij na een uur).
+
+OPTIE B — GitHub Pages
+1. Maak een nieuwe repository en upload alle bestanden uit deze map.
+2. Settings > Pages > Branch: main, map: / (root) > Save.
+3. Na een minuut staat de app op https://<gebruikersnaam>.github.io/<repository>/
+
+INSTALLEREN OP JE TELEFOON
+- Android (Chrome): open het adres en tik op "Installeer" in de gele balk, of menu ⋮ > "App installeren".
+- iPhone (Safari): open het adres, tik op Delen > "Zet op beginscherm".
+
+GOED OM TE WETEN
+- De radar haalt live data van adsb.lol (reserve: airplanes.live). Gratis, geen account nodig.
+- Kaarttegels die je hebt bekeken blijven bewaard, dus de kaart werkt deels offline.
+- De database (registraties, luchthavens, maatschappijen, types) werkt volledig offline.
+- Je logboek en foto's staan op je eigen telefoon. Maak af en toe een export via Logboek > Back-up.
+- Na een update van de bestanden: app één keer sluiten en opnieuw openen.
