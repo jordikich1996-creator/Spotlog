@@ -1479,6 +1479,12 @@ function ensureDatalists(){if($("#dl-al"))return;const d=document.createElement(
 function localISO(d=new Date()){const z=new Date(d.getTime()-d.getTimezoneOffset()*6e4);return z.toISOString().slice(0,16)}
 function openSpotForm(pre={},existing=null){ensureDatalists();
   const s0=existing||{};const photos=[...(s0.photos||[])];const newBlobs=[];
+  /* new spots reuse the date and place of the previous one for 3 hours, so a whole day can be entered quickly */
+  const last=LS.get("lastForm",null);const recent=!existing&&last&&Date.now()-last.at<3*3600e3;
+  const todayStr=localISO().slice(0,10);
+  const defDate=existing?localISO(new Date(s0.date)).slice(0,10):(recent?last.date:todayStr);
+  const defTime=existing&&!s0.noTime?localISO(new Date(s0.date)).slice(11,16):"";
+  const defAp=existing?s0.airport:(pre.airport||(recent?last.airport:"")||center.code);
   const body=h(`<form id="spotForm" class="wrap" style="gap:14px" novalidate>
     <div class="field"><label class="lbl" for="f-reg">Registratie</label>
       <div class="row" style="flex-wrap:nowrap"><input id="f-reg" class="mono" style="font-size:20px;text-transform:uppercase" placeholder="PH-BXA" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${esc(s0.reg||pre.reg||"")}">
@@ -1487,15 +1493,16 @@ function openSpotForm(pre={},existing=null){ensureDatalists();
     <div class="grid2">
       <div class="field"><label class="lbl" for="f-type">Type (ICAO)</label><input id="f-type" list="dl-ty" class="mono" value="${esc(s0.type||pre.type||"")}" autocomplete="off"></div>
       <div class="field"><label class="lbl" for="f-airline">Maatschappij</label><input id="f-airline" list="dl-al" value="${esc(airlineLabel(s0.airlineIcao||pre.airlineIcao)||s0.airlineName||"")}" autocomplete="off"></div>
-      <div class="field"><label class="lbl" for="f-ap">Locatie</label><input id="f-ap" list="dl-ap" value="${esc(apLabel(s0.airport||pre.airport||center.code))}" autocomplete="off"></div>
-      <div class="field"><label class="lbl" for="f-date">Datum en tijd</label><input id="f-date" type="datetime-local" value="${esc(s0.date?localISO(new Date(s0.date)):localISO())}"></div>
+      <div class="field"><label class="lbl" for="f-ap">Locatie</label><input id="f-ap" list="dl-ap" value="${esc(apLabel(defAp))}" autocomplete="off"></div>
+      <div class="field"><label class="lbl" for="f-date">Datum <span style="text-transform:none;letter-spacing:0;font-weight:500">· tijd optioneel</span></label>
+        <div class="row" style="flex-wrap:nowrap"><input id="f-date" type="date" class="input" style="flex:1 1 60%;min-width:0" value="${esc(defDate)}"><input id="f-time" type="time" class="input" style="flex:1 1 40%;min-width:0" value="${esc(defTime)}" aria-label="Tijd (optioneel)"></div></div>
       <div class="field"><label class="lbl" for="f-cs">Vluchtnummer / callsign</label><input id="f-cs" class="mono" value="${esc(s0.callsign||pre.callsign||"")}" autocomplete="off"></div>
       <div class="field"><label class="lbl" for="f-hex">Mode-S (hex)</label><input id="f-hex" class="mono" value="${esc(s0.hex||pre.hex||"")}" autocomplete="off"></div>
     </div>
     <div class="field"><label class="lbl" for="f-notes">Notities</label><textarea id="f-notes" placeholder="Bijzondere livery, baan, weer…">${esc(s0.notes||"")}</textarea></div>
     <div class="field"><span class="lbl">Foto's</span><div class="thumbs" id="f-thumbs"></div>
       <div class="row"><label class="btn" for="f-photos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Foto toevoegen</label><input type="file" id="f-photos" accept="image/*" multiple hidden></div></div>
-    <div class="row" style="justify-content:flex-end"><button type="submit" class="btn primary">${existing?"Wijzigingen opslaan":"Spot opslaan"}</button></div>
+    <div class="row" style="justify-content:flex-end">${existing?"":`<button type="submit" class="btn" id="f-next">Opslaan + volgende</button>`}<button type="submit" class="btn primary" id="f-save">${existing?"Wijzigingen opslaan":"Spot opslaan"}</button></div>
   </form>`);
   const sheet=openSheet(`<div class="lbl">${existing?"Spot bewerken":"Nieuwe spot"}</div>`,body);
   const q=s=>body.querySelector(s);
@@ -1525,10 +1532,15 @@ function openSpotForm(pre={},existing=null){ensureDatalists();
   q("#spotForm").onsubmit=async e=>{e.preventDefault();const reg=q("#f-reg").value.trim().toUpperCase();if(!reg){q("#f-reg").focus();auto.className="autofill";auto.textContent="Vul een registratie in.";return}
     for(const nb of newBlobs){const id=uid();await Store.put("photos",{id,blob:nb.blob});photos.push(id)}
     const alv=q("#f-airline").value.trim();const icao=parseAirline(alv);
+    const dStr=q("#f-date").value||todayStr,tStr=q("#f-time").value;const noTime=!tStr;
+    const spotDate=tStr?new Date(dStr+"T"+tStr):(dStr===todayStr?new Date():new Date(dStr+"T12:00"));
     const rec={id:s0.id||uid(),reg,hex:q("#f-hex").value.trim().toUpperCase(),type:q("#f-type").value.trim().toUpperCase(),airlineIcao:icao,airlineName:icao?DB.alByIcao.get(icao).name:alv,
-      airport:parseAirport(q("#f-ap").value),date:new Date(q("#f-date").value||Date.now()).toISOString(),callsign:q("#f-cs").value.trim().toUpperCase(),notes:q("#f-notes").value.trim(),photos,created:s0.created||new Date().toISOString()};
+      airport:parseAirport(q("#f-ap").value),date:spotDate.toISOString(),noTime,callsign:q("#f-cs").value.trim().toUpperCase(),notes:q("#f-notes").value.trim(),photos,created:s0.created||new Date().toISOString()};
     if(existing)for(const id of s0.photos||[])if(!photos.includes(id))await Store.del("photos",id);
-    await Store.put("spots",rec);await reloadSpots();sheet.close();toast(existing?"Spot bijgewerkt":"Spot opgeslagen");showTab("log")};
+    await Store.put("spots",rec);await reloadSpots();
+    if(!existing)LS.set("lastForm",{date:dStr,airport:rec.airport,at:Date.now()});
+    const next=e.submitter&&e.submitter.id==="f-next";sheet.close();
+    if(next){toast(`${reg} opgeslagen · volgende`);openSpotForm()}else{toast(existing?"Spot bijgewerkt":"Spot opgeslagen");showTab("log")}};
   if(!pre.reg&&!existing)setTimeout(()=>q("#f-reg").focus(),60)}
 
 /* ---------- photo → registration (Claude vision via the artifact runtime) ---------- */
@@ -1556,7 +1568,7 @@ async function renderLog(){const q=$("#logSearch").value.trim().toUpperCase();co
   const html=[];for(const [d,arr] of groups){html.push(`<div class="daygroup"><div class="lbl">${esc(fmtDate(d))} · ${arr.length}</div>${arr.map(s=>`<button class="strip" data-id="${s.id}">
      <div class="c1"><span class="r">${esc(s.reg)}</span><span class="mono small muted">${esc(s.type||"····")}</span></div>
      <div class="c2"><span class="a">${esc(s.airlineName||"Onbekende operator")}</span><span class="ty">${esc(prettyType(s.type)||s.type||"")}${s.callsign?" · "+esc(s.callsign):""} ${firstId.get(normReg(s.reg))===s.id?'<span class="chip new">1e keer</span>':""}</span></div>
-     <div class="c3">${s.photos?.length?`<img class="pic" data-pid="${s.photos[0]}" alt="">`:""}<div><div class="ap">${esc(s.airport||"")}</div><div class="tm">${esc(fmtTime(s.date))}</div></div></div></button>`).join("")}</div>`)}
+     <div class="c3">${s.photos?.length?`<img class="pic" data-pid="${s.photos[0]}" alt="">`:""}<div><div class="ap">${esc(s.airport||"")}</div><div class="tm">${s.noTime?"":esc(fmtTime(s.date))}</div></div></div></button>`).join("")}</div>`)}
   $("#logList").innerHTML=html.join("");
   $$("#logList img[data-pid]").forEach(async i=>i.src=await photoURL(i.dataset.pid));
   $$("#logList .strip").forEach(b=>b.onclick=()=>openSpot(b.dataset.id))}
@@ -1588,7 +1600,7 @@ async function openSpot(id){const s=SPOTS.find(x=>x.id===id);if(!s)return;const 
     <dt>Maatschappij</dt><dd>${al?`<a href="#" data-al="${al.icao}">${esc(al.name)}</a> <span class="mono muted">${al.icao}</span>`:esc(s.airlineName||"–")}</dd>
     <dt>Type</dt><dd><span class="mono">${esc(s.type||"–")}</span> ${esc(prettyType(s.type))}</dd>
     <dt>Locatie</dt><dd><span class="mono">${esc(s.airport||"–")}</span> ${ap?esc(ap.name):""}</dd>
-    <dt>Datum</dt><dd>${esc(fmtDate(s.date))}, ${esc(fmtTime(s.date))}</dd>
+    <dt>Datum</dt><dd>${esc(fmtDate(s.date))}${s.noTime?"":", "+esc(fmtTime(s.date))}</dd>
     ${s.callsign?`<dt>Vlucht</dt><dd class="mono">${esc(s.callsign)}</dd>`:""}
     ${s.hex?`<dt>Mode-S</dt><dd class="mono">${esc(s.hex)}</dd>`:""}
     <dt>Gezien</dt><dd>${n}× in totaal</dd>
