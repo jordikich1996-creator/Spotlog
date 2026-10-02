@@ -1,4 +1,5 @@
 <!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#161A1B"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Spotlog"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>Spotlog Europa</title>
+<script>try{var st=JSON.parse(localStorage.getItem("spotlog.theme"));if(st==="light"||st==="dark")document.documentElement.setAttribute("data-theme",st)}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
@@ -35,6 +36,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .sign-dir svg{width:18px;height:18px}
 .signbar .spacer{flex:1}
 .installbtn{align-self:center;margin-left:8px;background:var(--sign);color:var(--sign-ink);border:0;border-radius:6px;padding:6px 10px;font:700 14px var(--f-display);letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.themebtn{align-self:center;background:none;border:1px solid #3A4246;color:#E6EAE5;border-radius:8px;width:36px;height:34px;display:grid;place-items:center;cursor:pointer;flex:none}
+.themebtn svg{width:18px;height:18px}
 .status{display:flex;align-items:center;gap:6px;padding:0 16px;font:500 12px var(--f-mono);color:#C9CFCB;white-space:nowrap}
 .dot{width:8px;height:8px;border-radius:50%;background:#7C8580}
 .dot.on{background:#4CC384;box-shadow:0 0 0 3px rgba(76,195,132,.25)}
@@ -866,7 +869,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <div class="sign-loc" id="signLoc">EHAM</div>
     <div class="sign-dir" id="signDir"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 5l7 7-7 7v-4H4V9h9z"/></svg><span id="signDirTxt">Radar</span></div>
     <div class="spacer"></div>
-    <button class="installbtn" id="installBtn" hidden>Installeer</button><div class="status" id="netStatus"><span class="dot" id="netDot"></span><span id="netTxt">laden…</span></div>
+    <button class="themebtn" id="themeBtn" aria-label="Thema wisselen" title="Thema"></button><button class="installbtn" id="installBtn" hidden>Installeer</button><div class="status" id="netStatus"><span class="dot" id="netDot"></span><span id="netTxt">laden…</span></div>
   </header>
   <main>
     <section class="view" id="v-radar">
@@ -1095,7 +1098,7 @@ const Store=(()=>{let db=null,mem={spots:new Map(),photos:new Map()};
     async del(s,id){if(!db){mem[s].delete(id);return}return tx(s,"readwrite",st=>st.delete(id))},
     get persistent(){return !!db}}})();
 let SPOTS=[];const seenCount=new Map();
-async function reloadSpots(){SPOTS=(await Store.all("spots")).sort((a,b)=>b.date.localeCompare(a.date));seenCount.clear();for(const s of SPOTS){const k=normReg(s.reg);seenCount.set(k,(seenCount.get(k)||0)+1)}}
+async function reloadSpots(){setTimeout(()=>{if(typeof BG!=="undefined"&&BG.on)syncBg(true)},0);SPOTS=(await Store.all("spots")).sort((a,b)=>b.date.localeCompare(a.date));seenCount.clear();for(const s of SPOTS){const k=normReg(s.reg);seenCount.set(k,(seenCount.get(k)||0)+1)}}
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 async function resizeImage(file,max=1600){
   try{const bmp=await createImageBitmap(file);const sc=Math.min(1,max/Math.max(bmp.width,bmp.height));const c=document.createElement("canvas");c.width=Math.round(bmp.width*sc);c.height=Math.round(bmp.height*sc);c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
@@ -1283,7 +1286,7 @@ function fireAlert(a,km){const al=airlineFromCallsign(a.flight);const cs=(a.flig
   clearTimeout(ohTimer);ohTimer=setTimeout(()=>$("#overhead").hidden=true,15000);
   try{navigator.vibrate&&navigator.vibrate([250,120,250,120,400])}catch{}
   if(ALERT.sound)beep();
-  if(document.hidden&&"Notification" in window&&Notification.permission==="granted"){const title=(isNew?"Nieuw: ":"Boven je: ")+cs;const opts={body:sub,icon:"icon-192.png",badge:"favicon-32.png",tag:"overhead-"+a.hex,vibrate:[250,120,250]};
+  if(document.hidden&&!BG.on&&"Notification" in window&&Notification.permission==="granted"){const title=(isNew?"Nieuw: ":"Boven je: ")+cs;const opts={body:sub,icon:"icon-192.png",badge:"favicon-32.png",tag:"overhead-"+a.hex,vibrate:[250,120,250]};
     (navigator.serviceWorker?.ready||Promise.reject()).then(r=>r.showNotification(title,opts)).catch(()=>{try{new Notification(title,opts)}catch{}})}}
 function openAlertSettings(){const body=h(`
   <label class="check" style="font-size:16px"><input type="checkbox" id="al-on" ${ALERT.on?"checked":""}> <b>Melding als er een toestel over me heen vliegt</b></label>
@@ -1293,23 +1296,61 @@ function openAlertSettings(){const body=h(`
   <label class="check"><input type="checkbox" id="al-sound" ${ALERT.sound?"checked":""}> Geluid afspelen</label>
   <label class="check"><input type="checkbox" id="al-awake" ${ALERT.awake?"checked":""}> Scherm aan laten tijdens het spotten</label>
   <div class="note small">Je krijgt een trilling, een geluid en een gele balk bovenin; het toestel knippert op de kaart. De afstand wordt gemeten vanaf je GPS-stip${me?"":" (nog geen GPS: dan vanaf het midden van de radar)"}. Meldingen werken zolang de app open is. Zet je scherm uit of sluit je de app, dan kan je telefoon de radar pauzeren en mis je meldingen; zet daarom "Scherm aan laten" aan.</div>
-  <div class="row"><button class="btn primary" id="al-save">Opslaan</button><button class="btn" id="al-test">Test melding</button></div>`);
+  <div class="row"><button class="btn" id="al-test">Test melding in de app</button></div>
+  <div class="lg-sep"></div>
+  <label class="check" style="font-size:16px"><input type="checkbox" id="bg-on" ${BG.on?"checked":""}> <b>Ook melden als de app dicht is</b></label>
+  <div class="small muted">Je Cloudflare Worker kijkt elke minuut voor je en stuurt een pushmelding via de gratis app <b>ntfy</b>, ook als je telefoon in je zak zit.</div>
+  <div class="field"><label class="lbl" for="bg-worker">Adres van je Cloudflare Worker</label><input id="bg-worker" class="input mono" placeholder="https://….workers.dev" value="${esc(BG.worker)}" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url"></div>
+  <div class="field"><label class="lbl" for="bg-topic">Jouw ntfy-onderwerp</label><div class="row" style="flex-wrap:nowrap"><input id="bg-topic" class="input mono" value="${esc(BG.topic)}" autocomplete="off" autocapitalize="none" spellcheck="false"><button class="btn" id="bg-copy" type="button">Kopieer</button></div>
+    <span class="small muted">Abonneer je in de ntfy-app op precies dit onderwerp. Hou het geheim: wie het weet, ziet jouw meldingen.</span></div>
+  <div class="row"><button class="btn" id="bg-test" type="button">Stuur proefmelding</button><span class="small muted" id="bg-state"></span></div>
+  <div class="lg-sep"></div>
+  <div class="row"><button class="btn primary" id="al-save">Opslaan</button></div>`);
   const sh=openSheet(`<div class="lbl">Radar</div><h2>Melding bij overvliegen</h2>`,body);const q=s=>body.querySelector(s);
   q("#al-test").onclick=()=>{try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch{}
     const a=AC.slice().sort((x,y)=>x.dist-y.dist).find(x=>x.alt_baro!=="ground");if(!a){toast("Geen toestel in de lucht om mee te testen");return}
     const ref=me||center;const s=ALERT.sound;ALERT.sound=q("#al-sound").checked;sh.close();fireAlert(a,hav(ref.lat,ref.lon,a.lat,a.lon)*1.852);ALERT.sound=s};
   q("#al-save").onclick=async()=>{ALERT.on=q("#al-on").checked;ALERT.km=+q("#al-km").value;ALERT.onlyNew=q("#al-new").checked;ALERT.sound=q("#al-sound").checked;ALERT.awake=q("#al-awake").checked;
-    LS.set("alert",ALERT);setAlertUI();
+    LS.set("alert",ALERT);setAlertUI();readBg(q);
     if(ALERT.on){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch{}
       try{if("Notification" in window&&Notification.permission==="default")await Notification.requestPermission()}catch{}
       if(!me)$("#gpsBtn").click()}
-    keepAwake();sh.close();toast(ALERT.on?`Meldingen aan: binnen ${ALERT.km} km`:"Meldingen uit");checkOverhead()}}
+    keepAwake();sh.close();toast(ALERT.on?`Meldingen aan: binnen ${ALERT.km} km`:"Meldingen uit");checkOverhead();
+    if(BG.worker&&BG.topic)syncBg(true).then(r=>{if(r&&r.fout)toast("Achtergrondmelding: "+r.fout)})}
+  q("#bg-copy").onclick=()=>{const v=q("#bg-topic").value;navigator.clipboard?.writeText(v).then(()=>toast("Gekopieerd"),()=>{q("#bg-topic").select()})};
+  q("#bg-test").onclick=async()=>{readBg(q);const st=q("#bg-state");if(!BG.worker||!BG.topic){st.textContent="Vul eerst het Worker-adres en onderwerp in.";return}
+    st.textContent="Versturen…";const r=await syncBg(true);if(r&&r.fout){st.textContent="Fout: "+r.fout;return}
+    try{const res=await fetch(bgUrl("/testmelding"));const j=await res.json();st.textContent=j.ok?"Verstuurd! Kijk op je telefoon.":"Fout: "+(j.fout||res.status)}catch{st.textContent="Worker niet bereikbaar. Klopt het adres?"}}}
 $("#alertBtn").onclick=openAlertSettings;
+/* light / dark / auto */
+const THEME_ICONS={auto:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>',
+  light:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  dark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>'};
+const THEME_LBL={auto:"Thema: automatisch (volgt je telefoon)",light:"Thema: licht",dark:"Thema: donker"};
+function applyTheme(m){const r=document.documentElement;if(m==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",m);
+  $("#themeBtn").innerHTML=THEME_ICONS[m];$("#themeBtn").title=THEME_LBL[m];
+  if(map){setTiles();map.fire("moveend");if(AC.length)updateAircraft(AC);if(meAcc){meAcc.setStyle({color:cssv("--me"),fillColor:cssv("--me")})}if(rangeCircle)rangeCircle.setStyle({color:cssv("--sign")})}}
+let themeMode=LS.get("theme","auto");if(!THEME_ICONS[themeMode])themeMode="auto";
+$("#themeBtn").onclick=()=>{themeMode={auto:"light",light:"dark",dark:"auto"}[themeMode];LS.set("theme",themeMode);applyTheme(themeMode);toast(THEME_LBL[themeMode])};
+/* background alerts through the user's Cloudflare Worker + ntfy */
+const BG=Object.assign({on:false,worker:"",topic:"",prev:""},LS.get("bg",{}));
+if(!BG.topic){BG.topic="spotlog-"+Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>"abcdefghjkmnpqrstuvwxyz23456789"[b%31]).join("");LS.set("bg",BG)}
+function readBg(q){const w=q("#bg-worker").value.trim(),tp=q("#bg-topic").value.trim().replace(/[^A-Za-z0-9_-]/g,"");
+  if(tp&&tp!==BG.topic)BG.prev=BG.topic;BG.on=q("#bg-on").checked;BG.worker=w&&!/^https?:\/\//.test(w)?"https://"+w:w;BG.topic=tp||BG.topic;LS.set("bg",BG)}
+const bgUrl=p=>BG.worker.replace(/\/+$/,"")+p;
+let bgLast={t:0,lat:0,lon:0};
+async function syncBg(force){if(!BG.worker||!BG.topic)return null;const pos=me||center;
+  if(!force&&Date.now()-bgLast.t<10*60e3&&hav(pos.lat,pos.lon,bgLast.lat,bgLast.lon)<0.3)return null;
+  bgLast={t:Date.now(),lat:pos.lat,lon:pos.lon};
+  const body={on:BG.on&&ALERT.on,topic:BG.topic,secret:BG.prev||BG.topic,lat:pos.lat,lon:pos.lon,km:ALERT.km,onlyNew:ALERT.onlyNew,
+    seen:[...seenCount.keys()],proxy:BUILTIN_PROXY||"",app:location.origin+location.pathname};
+  try{const r=await fetch(bgUrl("/config"),{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));
+    if(r.ok&&BG.prev){BG.prev="";LS.set("bg",BG)}return r.ok?j:{fout:j.fout||("HTTP "+r.status)}}catch{return{fout:"Worker niet bereikbaar"}}}
 function setLegend(open){$("#legCard").hidden=!open;$("#legBtn").hidden=open;$("#legBtn").setAttribute("aria-expanded",open);LS.set("legend",open)}
 $("#legBtn").onclick=()=>setLegend(true);$("#legClose").onclick=()=>setLegend(false);
 /* you-are-here dot */
 let me=null,meMarker=null,meAcc=null,watchId=null;
-function showMe(p){me={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy||0};LS.set("meOn",true);if(!map)return;
+function showMe(p){me={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy||0};LS.set("meOn",true);if(BG.on)syncBg(false);if(!map)return;
   const ll=[me.lat,me.lon];
   if(!meMarker){meAcc=L.circle(ll,{radius:me.acc,color:cssv("--me"),weight:1,fillColor:cssv("--me"),fillOpacity:.12,interactive:false}).addTo(map);
     meMarker=L.marker(ll,{icon:L.divIcon({html:'<div class="me"><b></b><i></i></div>',className:"",iconSize:[22,22],iconAnchor:[11,11]}),zIndexOffset:1000,keyboard:false}).addTo(map).bindTooltip("Jij bent hier",{direction:"top",offset:[0,-10]})}
@@ -1542,7 +1583,8 @@ addEventListener("hashchange",()=>{const t=location.hash.slice(1);if(TABN[t])sho
   try{await loadData()}catch(e){$("#loading").innerHTML=`<div class="empty"><b>Database kon niet laden</b><span>Deze browser ondersteunt geen gzip-decompressie. Gebruik een recente Chrome, Edge, Safari of Firefox.</span></div>`;return}
   await Store.open();await reloadSpots();$("#loading").remove();
   $("#radiusSel").value=LS.get("radius","25");$("#signLoc").textContent=center.code||"GPS";
-  initMap();setLegend(LS.get("legend",true));setAlertUI();keepAwake();poll();
+  setTimeout(()=>{if(BG.on)syncBg(true)},4000);
+  initMap();applyTheme(themeMode);setLegend(LS.get("legend",true));setAlertUI();keepAwake();poll();
   /* first visit: start where the spotter actually is */
   if(LS.get("meOn",false))watchMe();
   if(FIRST_RUN&&navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{showMe(p);watchMe();const a=nearestAirport(p.coords.latitude,p.coords.longitude);setCenter(p.coords.latitude,p.coords.longitude,a?.code||"GPS");toast("Radar staat op je huidige locatie")},()=>{},{timeout:8000,maximumAge:600000});
