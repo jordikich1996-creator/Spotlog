@@ -6,7 +6,7 @@
 :root{
   --bg:#E9ECE7; --surface:#FFFFFF; --surface-2:#F4F6F2; --ink:#15191A; --muted:#5A645E; --line:#CDD3CC;
   --sign:#F2C200; --sign-ink:#121212; --signbar:#161A1B; --signbar-ink:#F2C200;
-  --good:#1F7A4D; --warn:#B26A00; --crit:#C0262D; --link:#0A5E8C;
+  --good:#1F7A4D; --me:#1A73E8; --warn:#B26A00; --crit:#C0262D; --link:#0A5E8C;
   --alt0:#7C8580; --alt1:#2E9A57; --alt2:#C9A100; --alt3:#E06A1B; --alt4:#8C3FBF;
   --shadow:0 8px 30px rgba(20,25,26,.18);
   --f-display:"Saira Condensed","Arial Narrow",system-ui,sans-serif;
@@ -15,12 +15,12 @@
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0E1113; --surface:#171B1E; --surface-2:#1E2327; --ink:#E6EAE5; --muted:#8E9893; --line:#2B3236;
-  --signbar:#050607; --link:#6CC2F0; --good:#4CC384; --warn:#E8A23A; --crit:#FF6B6B;
+  --signbar:#050607; --link:#6CC2F0; --me:#4C9BFF; --good:#4CC384; --warn:#E8A23A; --crit:#FF6B6B;
   --alt0:#9AA39E; --alt1:#4CC384; --alt2:#E8C93A; --alt3:#FF8A3D; --alt4:#B98AF0;
   --shadow:0 8px 30px rgba(0,0,0,.5); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0E1113; --surface:#171B1E; --surface-2:#1E2327; --ink:#E6EAE5; --muted:#8E9893; --line:#2B3236;
-  --signbar:#050607; --link:#6CC2F0; --good:#4CC384; --warn:#E8A23A; --crit:#FF6B6B;
+  --signbar:#050607; --link:#6CC2F0; --me:#4C9BFF; --good:#4CC384; --warn:#E8A23A; --crit:#FF6B6B;
   --alt0:#9AA39E; --alt1:#4CC384; --alt2:#E8C93A; --alt3:#FF8A3D; --alt4:#B98AF0;
   --shadow:0 8px 30px rgba(0,0,0,.5); color-scheme:dark}
 html,body{height:100%}
@@ -112,6 +112,11 @@ a{color:var(--link)}
 .acrow .sub{font-size:12px;color:var(--muted);grid-column:2}
 .acrow .rt{text-align:right;font:500 12px var(--f-mono);color:var(--muted);grid-row:span 2}
 .plane{width:28px;height:28px;display:block}
+.me{width:22px;height:22px;position:relative}
+.me i{position:absolute;inset:4px;border-radius:50%;background:var(--me);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.me b{position:absolute;inset:0;border-radius:50%;background:var(--me);opacity:.35;animation:mepulse 2s ease-out infinite}
+@keyframes mepulse{0%{transform:scale(.6);opacity:.5}100%{transform:scale(2.2);opacity:0}}
+@media (prefers-reduced-motion:reduce){.me b{animation:none}}
 .plane svg{width:28px;height:28px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.45));transition:transform .4s}
 .plane.sel svg{filter:drop-shadow(0 0 0 #000) drop-shadow(0 0 6px var(--sign))}
 .legend{display:flex;gap:10px;flex-wrap:wrap;font:500 11px var(--f-mono);color:var(--muted)}
@@ -1107,6 +1112,7 @@ $$("nav.tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 
 /* ---------- radar ---------- */
 let map=null,tileLayer=null,rangeCircle=null,timer=null;const markers=new Map();let AC=[];let selectedHex=null;
+const FIRST_RUN=LS.get("center",null)==null;
 let center=LS.get("center",{lat:52.3086,lon:4.7639,code:"EHAM"});
 function isDark(){const t=document.documentElement.dataset.theme;return t?t==="dark":matchMedia("(prefers-color-scheme: dark)").matches}
 function altColorVar(a){if(a==="ground"||a==null)return"--alt0";if(a<5000)return"--alt1";if(a<15000)return"--alt2";if(a<30000)return"--alt3";return"--alt4"}
@@ -1144,7 +1150,7 @@ const SRC=[
 let srcIdx=LS.get("srcIdx",0),DIAG={},liveSlow=false;
 function skyToAc(j){return(j.states||[]).map(s=>({hex:s[0],flight:s[1]||"",lat:s[6],lon:s[5],alt_baro:s[8]?"ground":s[7]!=null?Math.round(s[7]*3.28084):null,gs:s[9]!=null?s[9]*1.94384:null,track:s[10],baro_rate:s[11]!=null?Math.round(s[11]*196.85):null,squawk:s[14]||""}))}
 async function trySrc(i,a,o,r){const s=SRC[i];if(s.relay&&proxyBase()){DIAG[s.n]="overgeslagen (eigen proxy actief)";return null}try{const j=await getJSON(s.u(a,o,r),s.sky?25000:s.slow?12000:8000);
-    const ac=s.sky?skyToAc(j):j.ac;if(!Array.isArray(ac))throw new Error("onverwacht antwoord");DIAG[s.n]="ok · "+ac.length+" toestellen";return ac}
+    const ac=s.sky?skyToAc(j):(j.ac||j.aircraft);if(!Array.isArray(ac))throw new Error("onverwacht antwoord");DIAG[s.n]="ok · "+ac.length+" toestellen";return ac}
   catch(e){DIAG[s.n]=e.name==="AbortError"?"time-out":/HTTP/.test(e.message)?e.message:e instanceof SyntaxError?"geen geldige data":"geblokkeerd of onbereikbaar";return null}}
 async function raceSrc(idxs,a,o,r){try{return await Promise.any(idxs.map(i=>trySrc(i,a,o,r).then(ac=>{if(!ac)throw 0;return{ac,i}})))}catch{return null}}
 let workIdx=null,firstRound=true;
@@ -1193,7 +1199,7 @@ function openAircraft(hex){const a=AC.find(x=>x.hex===hex);if(!a)return;selected
     <dt>Snelheid</dt><dd class="mono">${a.gs!=null?Math.round(a.gs)+" kt":"–"} · koers ${a.track!=null?Math.round(a.track)+"°":"–"}</dd>
     <dt>Squawk</dt><dd class="mono ${em?"squawk-em":""}">${esc(a.squawk||"–")} ${em?`<span class="chip crit">${em}</span>`:""}</dd>
     <dt>Mode-S</dt><dd class="mono">${esc(hex.toUpperCase())}</dd>
-    <dt>Afstand</dt><dd class="mono">${a.dist.toFixed(1)} NM van ${esc(center.code||"jou")}</dd>
+    <dt>Afstand</dt><dd class="mono">${me?`${(hav(me.lat,me.lon,a.lat,a.lon)*1.852).toFixed(1)} km van jou`:`${a.dist.toFixed(1)} NM van ${esc(center.code||"het midden")}`}</dd>
    </dl></div>
    <div class="row"><button class="btn primary" id="logIt">Log deze spot</button><button class="btn" id="follow">Centreer op kaart</button>${a.reg?'<button class="btn" id="moreReg">Registratie-info</button>':""}</div>`);
   const s=openSheet(`<div class="lbl">${esc(cs?"Vlucht":"Toestel")}</div><div class="big-reg">${esc(cs||a.reg||hex)}</div>`,body,{onClose:()=>{selectedHex=null}});
@@ -1219,8 +1225,17 @@ $("#locInput").addEventListener("input",e=>{const r=apSearch(e.target.value);con
   box.querySelectorAll("button").forEach(b=>b.onclick=()=>{const a=DB.apByCode.get(b.dataset.c);box.hidden=true;e.target.value="";e.target.blur();setCenter(a.lat,a.lon,a.code)})});
 $("#locInput").addEventListener("blur",()=>setTimeout(()=>$("#locSuggest").hidden=true,200));
 $("#radiusSel").onchange=()=>{rangeCircle&&rangeCircle.setRadius(+$("#radiusSel").value*1852);LS.set("radius",$("#radiusSel").value);poll()};
+/* you-are-here dot */
+let me=null,meMarker=null,meAcc=null,watchId=null;
+function showMe(p){me={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy||0};LS.set("meOn",true);if(!map)return;
+  const ll=[me.lat,me.lon];
+  if(!meMarker){meAcc=L.circle(ll,{radius:me.acc,color:cssv("--me"),weight:1,fillColor:cssv("--me"),fillOpacity:.12,interactive:false}).addTo(map);
+    meMarker=L.marker(ll,{icon:L.divIcon({html:'<div class="me"><b></b><i></i></div>',className:"",iconSize:[22,22],iconAnchor:[11,11]}),zIndexOffset:1000,keyboard:false}).addTo(map).bindTooltip("Jij bent hier",{direction:"top",offset:[0,-10]})}
+  else{meMarker.setLatLng(ll);meAcc.setLatLng(ll).setRadius(me.acc)}}
+function watchMe(){if(!navigator.geolocation||watchId!=null)return;
+  watchId=navigator.geolocation.watchPosition(showMe,e=>{if(e.code===1){LS.set("meOn",false);navigator.geolocation.clearWatch(watchId);watchId=null}},{enableHighAccuracy:true,maximumAge:5000,timeout:20000})}
 $("#gpsBtn").onclick=()=>{if(!navigator.geolocation){toast("Locatie is niet beschikbaar in deze weergave");return}
-  navigator.geolocation.getCurrentPosition(p=>setCenter(p.coords.latitude,p.coords.longitude,nearestAirport(p.coords.latitude,p.coords.longitude)?.code||"GPS"),()=>toast("Locatie geweigerd. Kies een luchthaven in het zoekveld."),{timeout:8000})};
+  navigator.geolocation.getCurrentPosition(p=>{showMe(p);watchMe();setCenter(p.coords.latitude,p.coords.longitude,nearestAirport(p.coords.latitude,p.coords.longitude)?.code||"GPS")},()=>toast("Locatie geweigerd. Sta locatie toe in je browserinstellingen, of kies een luchthaven in het zoekveld."),{timeout:10000,enableHighAccuracy:true})};
 $("#retryBtn").onclick=()=>{bannerHidden=false;$("#netTxt").textContent="opnieuw…";poll()};$("#proxySave").onclick=()=>{let v=$("#proxyInput").value.trim();if(v&&!/^https:\/\//.test(v))v="https://"+v.replace(/^http:\/\//,"");PROXY=v;LS.set("proxy",v);workIdx=null;firstRound=false;DIAG={};toast(v?"Proxy opgeslagen, live data ophalen…":"Proxy verwijderd");bannerHidden=false;poll()};
 $("#netStatus").onclick=()=>{showDiag();bannerHidden=false;$("#offlineBanner").hidden=false;$("#bannerTitle").textContent=ONLINE===true?"Live data werkt":"Geen live data"};$("#netStatus").style.cursor="pointer";$("#hideBanner").onclick=()=>{bannerHidden=true;$("#offlineBanner").hidden=true};
 $("#listBtn").onclick=()=>{$("#acList").hidden=false;renderAcList()};$("#closeList").onclick=()=>$("#acList").hidden=true;$("#onlyNew").onchange=renderAcList;
@@ -1446,6 +1461,9 @@ addEventListener("hashchange",()=>{const t=location.hash.slice(1);if(TABN[t])sho
   await Store.open();await reloadSpots();$("#loading").remove();
   $("#radiusSel").value=LS.get("radius","25");$("#signLoc").textContent=center.code||"GPS";
   initMap();poll();
+  /* first visit: start where the spotter actually is */
+  if(LS.get("meOn",false))watchMe();
+  if(FIRST_RUN&&navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{showMe(p);watchMe();const a=nearestAirport(p.coords.latitude,p.coords.longitude);setCenter(p.coords.latitude,p.coords.longitude,a?.code||"GPS");toast("Radar staat op je huidige locatie")},()=>{},{timeout:8000,maximumAge:600000});
   const t=TABN[location.hash.slice(1)]?location.hash.slice(1):LS.get("tab","radar");showTab(TABN[t]?t:"radar");
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll()});
   // artifact runtime extras (only when opened inside Claude)

@@ -1,5 +1,5 @@
 // Spotlog Europa service worker: app shell offline, map tiles cached, live data always fresh.
-const VERSION = "spotlog-v6";
+const VERSION = "spotlog-v8";
 const SHELL = [
   "./", "./index.html", "./manifest.webmanifest",
   "./icon-192.png", "./icon-512.png", "./maskable-192.png", "./maskable-512.png",
