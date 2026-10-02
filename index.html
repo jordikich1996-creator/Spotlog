@@ -1016,7 +1016,10 @@ async function gunzipB64(id){const b64=document.getElementById(id).textContent.t
   const ds=new DecompressionStream("gzip");const txt=await new Response(new Blob([bin]).stream().pipeThrough(ds)).text();return txt}
 const PROXY_HOSTS=["api.adsb.lol","opendata.adsb.fi","api.airplanes.live","api.adsb.one","opensky-network.org","api.adsbdb.com","api.planespotters.net"];
 let PROXY="";try{PROXY=(JSON.parse(localStorage.getItem("spotlog.proxy"))||"").trim()}catch{}
-function viaProxy(url){if(!PROXY)return url;try{const h=new URL(url).hostname;if(PROXY_HOSTS.includes(h))return PROXY.replace(/\/+$/,"")+"/?url="+encodeURIComponent(url)}catch{}return url}
+/* on Vercel the proxy is built in: same site, /api/proxy */
+const BUILTIN_PROXY=/\.vercel\.app$/.test(location.hostname)?location.origin+"/api/proxy":"";
+function proxyBase(){return PROXY||BUILTIN_PROXY}
+function viaProxy(url){const b=proxyBase();if(!b)return url;try{const h=new URL(url).hostname;if(PROXY_HOSTS.includes(h)){const base=b.replace(/\/+$/,"");return base+(base.includes("?")?"&":"?")+"url="+encodeURIComponent(url)}}catch{}return url}
 async function getJSON(url,ms=7000){url=viaProxy(url);const ac=new AbortController();const t=setTimeout(()=>ac.abort(),ms);try{const r=await fetch(url,{signal:ac.signal});if(!r.ok)throw new Error("HTTP "+r.status);return await r.json()}finally{clearTimeout(t)}}
 
 /* ---------- data ---------- */
@@ -1140,7 +1143,7 @@ const SRC=[
 ];
 let srcIdx=LS.get("srcIdx",0),DIAG={},liveSlow=false;
 function skyToAc(j){return(j.states||[]).map(s=>({hex:s[0],flight:s[1]||"",lat:s[6],lon:s[5],alt_baro:s[8]?"ground":s[7]!=null?Math.round(s[7]*3.28084):null,gs:s[9]!=null?s[9]*1.94384:null,track:s[10],baro_rate:s[11]!=null?Math.round(s[11]*196.85):null,squawk:s[14]||""}))}
-async function trySrc(i,a,o,r){const s=SRC[i];if(s.relay&&PROXY){DIAG[s.n]="overgeslagen (eigen proxy actief)";return null}try{const j=await getJSON(s.u(a,o,r),s.slow?12000:8000);
+async function trySrc(i,a,o,r){const s=SRC[i];if(s.relay&&proxyBase()){DIAG[s.n]="overgeslagen (eigen proxy actief)";return null}try{const j=await getJSON(s.u(a,o,r),s.sky?25000:s.slow?12000:8000);
     const ac=s.sky?skyToAc(j):j.ac;if(!Array.isArray(ac))throw new Error("onverwacht antwoord");DIAG[s.n]="ok · "+ac.length+" toestellen";return ac}
   catch(e){DIAG[s.n]=e.name==="AbortError"?"time-out":/HTTP/.test(e.message)?e.message:e instanceof SyntaxError?"geen geldige data":"geblokkeerd of onbereikbaar";return null}}
 async function raceSrc(idxs,a,o,r){try{return await Promise.any(idxs.map(i=>trySrc(i,a,o,r).then(ac=>{if(!ac)throw 0;return{ac,i}})))}catch{return null}}
@@ -1154,8 +1157,8 @@ async function fetchLive(){const a=center.lat.toFixed(4),o=center.lon.toFixed(4)
     const res=await raceSrc(g,a,o,r);if(res){workIdx=res.i;srcIdx=res.i;LS.set("srcIdx",res.i);liveSlow=!!SRC[res.i].slow;return{ac:res.ac,src:SRC[res.i].n}}}
   throw new Error("offline")}
 function showDiag(){$("#bannerTitle").textContent="Geen live data";
-  $("#bannerText").textContent=ONLINE===true?"Overzicht van de live bronnen:":window.claude?"Binnen de Claude-app kan de pagina geen live bronnen bereiken. Open de versie op je eigen website.":(PROXY?"Ook via je eigen proxy kwam geen data. Controleer het adres en of de Worker is gedeployed.":"De live bronnen staan geen verzoeken vanuit een webpagina toe. Vul hieronder het adres van je eigen Cloudflare Worker in.");
-  $("#proxyInput").value=PROXY;$("#diag").innerHTML=(PROXY?`<span>proxy: ${esc(PROXY)}</span>`:"")+SRC.map(s=>`<span>${esc(s.n)}: ${esc(DIAG[s.n]||"niet geprobeerd")}</span>`).join("")}
+  $("#bannerText").textContent=ONLINE===true?"Overzicht van de live bronnen:":window.claude?"Binnen de Claude-app kan de pagina geen live bronnen bereiken. Open de versie op je eigen website.":(proxyBase()?"Ook via je eigen proxy kwam geen data. Controleer het adres en of de Worker is gedeployed.":"De live bronnen staan geen verzoeken vanuit een webpagina toe. Vul hieronder het adres van je eigen Cloudflare Worker in.");
+  $("#proxyInput").value=PROXY;$("#diag").innerHTML=(proxyBase()?`<span>proxy: ${esc(proxyBase())}</span>`:"")+SRC.map(s=>`<span>${esc(s.n)}: ${esc(DIAG[s.n]||"niet geprobeerd")}</span>`).join("")}
 async function poll(){clearTimeout(timer);
   try{const {ac,src}=await fetchLive();setNet(true,"live · "+src);const at=document.getElementById("srcAttr");if(at)at.textContent="live: "+src;$("#offlineBanner").hidden=true;updateAircraft(ac)}
   catch{if(ONLINE!==true||!AC.length){setNet(false,"geen live data");showDiag();if(!bannerHidden)$("#offlineBanner").hidden=false}}

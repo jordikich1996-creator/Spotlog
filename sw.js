@@ -1,5 +1,5 @@
 // Spotlog Europa service worker: app shell offline, map tiles cached, live data always fresh.
-const VERSION = "spotlog-v5";
+const VERSION = "spotlog-v6";
 const SHELL = [
   "./", "./index.html", "./manifest.webmanifest",
   "./icon-192.png", "./icon-512.png", "./maskable-192.png", "./maskable-512.png",
@@ -22,7 +22,7 @@ async function trimTiles() {
 self.addEventListener("fetch", e => {
   const req = e.request; if (req.method !== "GET") return;
   const url = new URL(req.url);
-  if (LIVE.includes(url.hostname)) return; // live data: straight to the network
+  if (LIVE.includes(url.hostname) || url.pathname.startsWith("/api/") || url.hostname.endsWith(".workers.dev")) return; // live data: straight to the network
   if (url.hostname==="tile.openstreetmap.org") {
     e.respondWith(caches.open(TILE_CACHE).then(async c => {
       const hit = await c.match(req); if (hit) return hit;
