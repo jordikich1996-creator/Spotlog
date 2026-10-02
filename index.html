@@ -1141,7 +1141,9 @@ const Online={
   async route(cs){try{const j=await getJSON("https://api.adsbdb.com/v0/callsign/"+encodeURIComponent(cs.trim()));return j?.response?.flightroute||null}catch{return null}},
   async photo({hex,reg}){const urls=[];if(hex)urls.push("https://api.planespotters.net/pub/photos/hex/"+hex);if(reg)urls.push("https://api.planespotters.net/pub/photos/reg/"+encodeURIComponent(reg));
     for(const u of urls){try{const j=await getJSON(u);const p=j?.photos?.[0];if(p)return{src:p.thumbnail_large?.src||p.thumbnail?.src,link:p.link,by:p.photographer}}catch{}}return null},
-  async live(reg){for(const u of["https://api.adsb.lol/v2/reg/"+encodeURIComponent(reg),"https://opendata.adsb.fi/api/v2/registration/"+encodeURIComponent(reg),"https://api.airplanes.live/v2/reg/"+encodeURIComponent(reg)]){try{const j=await getJSON(u,5000);return(j.ac||[])[0]||null}catch{}}return null}
+  /* ask the live sources at the same time; the first one that answers wins (an empty answer means: not flying now) */
+  async live(reg){const r=encodeURIComponent(reg);const urls=["https://api.adsb.lol/v2/reg/"+r,"https://opendata.adsb.fi/api/v2/registration/"+r];
+    try{return await Promise.any(urls.map(u=>getJSON(u,4000).then(j=>{const ac=j.ac||j.aircraft;if(!Array.isArray(ac))throw 0;return ac[0]||null})))}catch{return null}}
 };
 /* full lookup: local first, then online */
 async function lookupReg(input,onUpdate){
@@ -1151,12 +1153,14 @@ async function lookupReg(input,onUpdate){
   const prev=SPOTS.find(s=>normReg(s.reg)===normReg(res.local?.reg||k));if(prev?.airlineIcao)res.airline=DB.alByIcao.get(prev.airlineIcao)||null;
   onUpdate&&onUpdate(res);
   const reg=res.local?.reg||input;
-  const [on,live,photo]=await Promise.all([Online.aircraft(res.local?.hex||reg),Online.live(reg),Online.photo({hex:res.local?.hex,reg})]);
-  res.online=on;res.live=live;res.photo=photo;
-  if(live?.flight){const a=airlineFromCallsign(live.flight);if(a)res.airline=a}
-  if(!res.airline&&on?.registered_owner)res.airline=airlineFromOwner(on.registered_owner);
-  if(on||live||photo)setNet(true,"online");
-  res.done=true;onUpdate&&onUpdate(res);return res}
+  /* each part shows up as soon as it arrives instead of waiting for the slowest */
+  const pick=()=>{if(res.live?.flight){const a=airlineFromCallsign(res.live.flight);if(a)res.airline=a}
+    const fc=res.online?.registered_owner_operator_flag_code;if(!res.airline&&fc&&DB.alByIcao.get(fc))res.airline=DB.alByIcao.get(fc);
+    if(!res.airline&&res.online?.registered_owner)res.airline=airlineFromOwner(res.online.registered_owner)};
+  const step=(pr,key)=>pr.then(v=>{res[key]=v;if(v)setNet(true,"online");try{pick();if(!res.done)onUpdate&&onUpdate(res)}catch(e){console.warn("lookup",key,e)}}).catch(e=>console.warn("lookup",key,e));
+  /* never keep the spinner going: stop after 8 s even if a source hangs */
+  await Promise.race([Promise.all([step(Online.aircraft(res.local?.hex||reg),"online"),step(Online.live(reg),"live"),step(Online.photo({hex:res.local?.hex,reg}),"photo")]),new Promise(r=>setTimeout(r,8000))]);
+  res.done=true;try{onUpdate&&onUpdate(res)}catch(e){console.warn(e)}return res}
 
 /* ---------- sheets ---------- */
 function openSheet(titleHTML,bodyNode,{onClose}={}){
@@ -1503,9 +1507,9 @@ function openSpotForm(pre={},existing=null){ensureDatalists();
   // auto-fill
   let lastQ="",tmr;const auto=q("#f-auto");
   const fill=(id,v,force)=>{const el=q(id);if(v&&(force||!el.value.trim()))el.value=v};
-  const doLookup=async()=>{const v=q("#f-reg").value.trim();if(normReg(v).length<3){auto.innerHTML="";return}if(v===lastQ)return;lastQ=v;
+  const doLookup=async()=>{const v=q("#f-reg").value.trim();if(normReg(v).length<3){auto.innerHTML="";return}if(normReg(v)===normReg(lastQ))return;lastQ=v;
     auto.className="autofill";auto.innerHTML=`<div class="spin"></div>Opzoeken…`;
-    await lookupReg(v,res=>{if(q("#f-reg").value.trim()!==v)return;const l=res.local;
+    await lookupReg(v,res=>{if(normReg(q("#f-reg").value)!==normReg(v))return;const l=res.local;
       if(l){if(normReg(q("#f-reg").value)===normReg(l.reg))q("#f-reg").value=l.reg;fill("#f-type",l.type);fill("#f-hex",l.hex)}
       if(res.online){fill("#f-type",res.online.icao_type);fill("#f-hex",res.online.mode_s)}
       if(res.live?.flight)fill("#f-cs",res.live.flight.trim());
@@ -1515,7 +1519,7 @@ function openSpotForm(pre={},existing=null){ensureDatalists();
       const n=seenCount.get(normReg(l?.reg||v))||0;if(!existing)bits.push(n?`al ${n}× gespot`:"nieuw voor jou");
       if(!res.done){auto.className="autofill"+(l?" ok":"");auto.innerHTML=(l?"✓ "+esc(bits.join(" · "))+" · ":"")+`<div class="spin"></div>online zoeken…`}
       else{auto.className="autofill"+(l||res.online?" ok":"");auto.textContent=(l||res.online)?"✓ "+bits.join(" · "):"Niet gevonden in de database. Vul het type zelf in."}})};
-  q("#f-reg").addEventListener("input",()=>{clearTimeout(tmr);tmr=setTimeout(doLookup,450)});
+  q("#f-reg").addEventListener("input",e=>{const el=e.target,pos=el.selectionStart;if(el.value!==el.value.toUpperCase()){el.value=el.value.toUpperCase();try{el.setSelectionRange(pos,pos)}catch{}}clearTimeout(tmr);tmr=setTimeout(doLookup,450)});
   if(q("#f-reg").value&&!existing)doLookup();
   setupOCR(q("#f-ocrBtn"),q("#f-ocr"),r=>{q("#f-reg").value=r.registration;if(r.airline){const a=parseAirline(r.airline)||DB.airlines.find(x=>x.name.toLowerCase()===r.airline.toLowerCase())?.icao;if(a)fill("#f-airline",airlineLabel(a))}doLookup()},async f=>{const b=await resizeImage(f);newBlobs.push({blob:b,url:URL.createObjectURL(b)});drawThumbs()});
   q("#spotForm").onsubmit=async e=>{e.preventDefault();const reg=q("#f-reg").value.trim().toUpperCase();if(!reg){q("#f-reg").focus();auto.className="autofill";auto.textContent="Vul een registratie in.";return}
