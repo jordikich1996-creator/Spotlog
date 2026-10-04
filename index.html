@@ -34,8 +34,11 @@ button,input,select,textarea{font:inherit;color:inherit}
 .sign-loc{background:var(--signbar);color:var(--signbar-ink);border:2px solid var(--signbar-ink);margin:7px 0 7px 16px;padding:0 10px;display:flex;align-items:center;font:700 22px/1 var(--f-display);letter-spacing:.04em}
 .sign-dir{background:var(--sign);color:var(--sign-ink);margin:7px 8px;padding:0 12px;display:flex;align-items:center;gap:8px;font:700 20px/1 var(--f-display);letter-spacing:.03em;text-transform:uppercase}
 .sign-dir svg{width:18px;height:18px}
-.signbar .spacer{flex:1}
-.installbtn{align-self:center;margin-left:8px;background:var(--sign);color:var(--sign-ink);border:0;border-radius:6px;padding:6px 10px;font:700 14px var(--f-display);letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.signbar .spacer{flex:1;min-width:0}
+.signbar{overflow:hidden}
+.status{min-width:0;cursor:pointer}
+#netTxt{overflow:hidden;text-overflow:ellipsis}
+@media (max-width:520px){#netTxt{display:none}.sign-dir{font-size:17px;padding:0 9px}.sign-loc{font-size:19px;padding:0 8px}}
 .themebtn{align-self:center;background:none;border:1px solid #3A4246;color:#E6EAE5;border-radius:8px;width:36px;height:34px;display:grid;place-items:center;cursor:pointer;flex:none}
 .themebtn svg{width:18px;height:18px}
 .status{display:flex;align-items:center;gap:6px;padding:0 16px;font:500 12px var(--f-mono);color:#C9CFCB;white-space:nowrap}
@@ -47,8 +50,8 @@ main{flex:1;min-height:0;position:relative}
 .view.pad{padding:16px 16px 32px}
 .wrap{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
 /* tabs */
-nav.tabs{flex:none;display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-nav.tabs button{background:none;border:0;padding:8px 4px 9px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted);font:600 13px var(--f-display);letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+nav.tabs{flex:none;display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.tabs button{background:none;border:0;padding:8px 2px 9px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted);font:600 11px var(--f-display);letter-spacing:.02em;min-width:0;white-space:nowrap;text-transform:uppercase;cursor:pointer}
 nav.tabs button svg{width:22px;height:22px}
 nav.tabs button[aria-selected="true"]{color:var(--ink)}
 nav.tabs button[aria-selected="true"] .tabmark{background:var(--sign)}
@@ -166,6 +169,13 @@ details.card[open]>summary::after{content:"▴"}
 .selbar .cnt{font:700 16px var(--f-display);letter-spacing:.04em;color:var(--signbar-ink);margin-right:auto}
 .selbar .btn{min-height:36px;padding:6px 12px}
 .daysel{background:none;border:0;color:var(--link);cursor:pointer;font:600 12px var(--f-display);letter-spacing:.08em;text-transform:uppercase;padding:0 0 0 8px}
+.seg.seg4{grid-template-columns:repeat(4,minmax(0,1fr))}.seg.seg3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.seg.seg4 button{font-size:12px;letter-spacing:0;padding:8px 2px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.setrow{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:40px}
+.setrow>span{font-weight:500}
+.setrow .seg{flex:0 1 240px}
+.setrow input[type=checkbox]{width:22px;height:22px;accent-color:var(--sign)}
+@media (max-width:520px){.stat-row{grid-template-columns:repeat(2,1fr)}}
 .ctl.on{background:var(--sign);border-color:var(--sign);color:var(--sign-ink)}
 .me{width:22px;height:22px;position:relative}
 .me i{position:absolute;inset:4px;border-radius:50%;background:var(--me);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5)}
@@ -904,7 +914,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <div class="sign-loc" id="signLoc">EHAM</div>
     <div class="sign-dir" id="signDir"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 5l7 7-7 7v-4H4V9h9z"/></svg><span id="signDirTxt">Radar</span></div>
     <div class="spacer"></div>
-    <button class="themebtn" id="themeBtn" aria-label="Thema wisselen" title="Thema"></button><button class="installbtn" id="installBtn" hidden>Installeer</button><div class="status" id="netStatus"><span class="dot" id="netDot"></span><span id="netTxt">laden…</span></div>
+    <button class="installbtn" id="installBtn" hidden>Installeer</button><div class="status" id="netStatus"><span class="dot" id="netDot"></span><span id="netTxt">laden…</span></div>
   </header>
   <main>
     <section class="view" id="v-radar">
@@ -917,41 +927,34 @@ svg.leaflet-image-layer.leaflet-interactive path {
         </div>
         <label class="ctl" for="radiusSel" title="Straal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
           <select id="radiusSel" aria-label="Straal in zeemijl"><option value="10">10 NM</option><option value="25" selected>25 NM</option><option value="50">50 NM</option><option value="100">100 NM</option><option value="200">200 NM</option></select></label>
-        <button class="ctl" id="gpsBtn" title="Mijn locatie"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg><span class="hide-sm">GPS</span></button>
-        <button class="ctl" id="alertBtn" title="Melding bij overvliegen" aria-label="Melding bij overvliegen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 21h4"/></svg><span id="alertBtnTxt">uit</span></button>
-        <button class="ctl" id="lblBtn" title="Labels op de kaart" aria-label="Labels op de kaart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></svg><span id="lblBtnTxt">labels</span></button>
+        <button class="ctl" id="gpsBtn" title="Mijn locatie"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg></button>
+        <button class="ctl" id="alertBtn" title="Melding bij overvliegen" aria-label="Melding bij overvliegen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 21h4"/></svg></button>
+        <button class="ctl" id="lblBtn" title="Labels op de kaart" aria-label="Labels op de kaart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></svg></button>
       </div>
       <button class="rwy" id="rwyPanel" hidden></button>
       <button class="overhead" id="overhead" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="oh-t" id="ohT">Boven je</span><span class="oh-cs" id="ohCs"></span><span class="oh-sub" id="ohSub"></span></span></button>
       <div class="banner" id="offlineBanner" hidden>
         <b id="bannerTitle">Geen live data</b>
-        <span id="bannerText">Geen enkele live bron gaf antwoord.</span>
-        <div id="diag" class="mono small" style="display:flex;flex-direction:column;gap:2px"></div>
-        <div class="field"><label class="lbl" for="proxyInput">Eigen proxy (Cloudflare Worker)</label>
-          <div class="row" style="flex-wrap:nowrap"><input id="proxyInput" class="input mono" placeholder="https://spotlog.jouwnaam.workers.dev" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url"><button class="btn primary" id="proxySave">Opslaan</button></div></div>
-        <div class="row"><button class="btn" id="retryBtn">Opnieuw proberen</button><button class="btn" id="hideBanner">Verbergen</button></div>
+        <span id="bannerText" class="small"></span>
+        <div class="row"><button class="btn" id="retryBtn">Opnieuw</button><button class="btn" id="bannerMore">Details</button><button class="btn" id="hideBanner">Sluiten</button></div>
       </div>
-      <button class="ctl legbtn" id="legBtn" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>Legenda</button>
+      <button class="ctl legbtn" id="legBtn" aria-label="Legenda" title="Legenda"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
       <div class="legend-card" id="legCard" hidden>
-        <h4>Legenda <button id="legClose" aria-label="Legenda sluiten">×</button></h4>
-        <div class="lbl">Kleur = hoogte</div>
-        <div class="lg-row"><span class="sw" style="background:var(--alt0)"></span><span>Op de grond <span class="sub">· taxiënd of geparkeerd</span></span></div>
-        <div class="lg-row"><span class="sw" style="background:var(--alt1)"></span><span>Onder 5.000 ft <span class="sub">· ± 1,5 km · landen of opstijgen</span></span></div>
-        <div class="lg-row"><span class="sw" style="background:var(--alt2)"></span><span>5.000 – 15.000 ft <span class="sub">· ± 1,5–4,5 km · stijgen of dalen</span></span></div>
-        <div class="lg-row"><span class="sw" style="background:var(--alt3)"></span><span>15.000 – 30.000 ft <span class="sub">· ± 4,5–9 km</span></span></div>
-        <div class="lg-row"><span class="sw" style="background:var(--alt4)"></span><span>Boven 30.000 ft <span class="sub">· kruishoogte, doorvliegend</span></span></div>
+        <h4>Hoogte <button id="legClose" aria-label="Legenda sluiten">×</button></h4>
+        <div class="lg-row"><span class="sw" style="background:var(--alt0)"></span><span>Grond</span></div>
+        <div class="lg-row"><span class="sw" style="background:var(--alt1)"></span><span>&lt; 5.000 ft</span></div>
+        <div class="lg-row"><span class="sw" style="background:var(--alt2)"></span><span>5.000 – 15.000 ft</span></div>
+        <div class="lg-row"><span class="sw" style="background:var(--alt3)"></span><span>15.000 – 30.000 ft</span></div>
+        <div class="lg-row"><span class="sw" style="background:var(--alt4)"></span><span>&gt; 30.000 ft</span></div>
         <div class="lg-sep"></div>
-        <div class="lg-row"><svg viewBox="0 0 32 32" width="20" height="20"><path fill="var(--alt1)" stroke="rgba(0,0,0,.5)" d="M16 2c1.2 0 2 1.4 2 3v7.2l10 5.6v2.8l-10-3.1v6.3l3 2.3v2.3l-5-1.4-5 1.4v-2.3l3-2.3v-6.3L4 20.6v-2.8l10-5.6V5c0-1.6.8-3 2-3z"/></svg><span>Vliegtuig <span class="sub">· neus wijst de vliegrichting aan; groter = widebody (A330, 747, 777…)</span></span></div>
-        <div class="lg-row"><span class="me" style="transform:scale(.8)"><i></i></span><span>Jij <span class="sub">· je GPS-positie</span></span></div>
-        <div class="lg-row"><svg viewBox="0 0 20 20" width="18" height="18"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--sign)" stroke-width="2" stroke-dasharray="3 3"/></svg><span>Radarbereik <span class="sub">· de straal die je bovenin kiest</span></span></div>
-        <div class="lg-row"><svg viewBox="0 0 20 20" width="16" height="16"><circle cx="10" cy="10" r="5" fill="var(--surface)" stroke="var(--muted)" stroke-width="2"/></svg><span>Luchthaven <span class="sub">· tik voor ICAO-code</span></span></div>
-        <div class="lg-row"><span class="chip new" style="font-size:9px;padding:0 4px">NIEUW</span><span>Registratie die je nog nooit gespot hebt</span></div>
-        <div class="lg-row"><span class="chip mil" style="font-size:9px;padding:0 4px">militair</span><span>Militair toestel</span></div>
+        <div class="lg-row"><span class="me" style="transform:scale(.8)"><i></i></span><span>Jij</span></div>
+        <div class="lg-row"><svg viewBox="0 0 20 20" width="18" height="18"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--sign)" stroke-width="2" stroke-dasharray="3 3"/></svg><span>Radarbereik</span></div>
+        <div class="lg-row"><svg viewBox="0 0 20 20" width="16" height="16"><circle cx="10" cy="10" r="5" fill="var(--surface)" stroke="var(--muted)" stroke-width="2"/></svg><span>Luchthaven</span></div>
       </div>
-      <button class="ctl listbtn" id="listBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span id="listCount">0</span>&nbsp;toestellen</button>
+      <button class="ctl listbtn" id="listBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span id="listCount">0</span></button>
       <aside class="aclist" id="acList" hidden>
-        <header><div><h3>In de buurt</h3><div class="legend" id="legend"></div></div><button class="x" id="closeList" aria-label="Lijst sluiten"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
-        <div class="row" style="padding:8px 16px;border-bottom:1px solid var(--line)"><label class="check"><input type="checkbox" id="onlyNew"> Alleen nieuw voor mij</label></div>
+        <header><h3>In de buurt</h3><button class="x" id="closeList" aria-label="Lijst sluiten"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
+        <div class="row" style="padding:8px 16px;border-bottom:1px solid var(--line)"><label class="check"><input type="checkbox" id="onlyNew"> Alleen nieuw</label></div>
         <div class="items" id="acItems"></div>
       </aside>
     </section>
@@ -959,58 +962,89 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <section class="view pad" id="v-log" hidden>
       <div class="wrap">
         <div class="row" style="justify-content:space-between">
-          <h2>Logboek</h2>
+          <span class="muted" id="logCount"></span>
           <button class="btn primary" id="newSpotBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>Nieuwe spot</button>
         </div>
-        <div class="stat-row" id="stats"></div>
-        <details class="card" id="statsCard" hidden><summary><h3>Statistieken</h3></summary><div id="statsBody" class="wrap" style="gap:18px"></div></details>
         <div class="toolbar">
-          <input class="input" id="logSearch" placeholder="Zoek registratie, type, maatschappij, ICAO…" aria-label="Logboek doorzoeken">
-          <select id="logFilter" aria-label="Filter"><option value="">Alle spots</option><option value="first">Alleen eerste keer gezien</option><option value="photo">Met foto</option></select>
+          <input class="input" id="logSearch" placeholder="Zoeken" aria-label="Logboek doorzoeken">
+          <select id="logFilter" aria-label="Filter"><option value="">Alle</option><option value="first">Eerste keer</option><option value="photo">Met foto</option></select>
           <button class="btn" id="selBtn" type="button">Selecteren</button>
         </div>
         <div id="logList" class="wrap" style="gap:18px"></div>
         <div class="selbar" id="selBar" hidden><span class="cnt" id="selCnt">0 geselecteerd</span><button class="btn" id="selAll" type="button">Alles</button><button class="btn" id="selNone" type="button">Niets</button><button class="btn danger" id="selDel" type="button">Verwijderen</button><button class="btn" id="selDone" type="button">Klaar</button></div>
-        <div class="card">
-          <div class="lbl">Back-up</div>
-          <div class="small muted">Je logboek staat op dit apparaat, in deze browser. Maak af en toe een back-up, inclusief foto's.</div>
-          <div class="row">
-            <button class="btn" id="exportBtn">Exporteer (JSON)</button>
-            <button class="btn" id="exportCsvBtn">Exporteer (CSV)</button>
-            <label class="btn" for="importFile">Importeer</label>
-            <input type="file" id="importFile" accept="application/json,.json" hidden>
-          </div>
-        </div>
       </div>
     </section>
 
-    <section class="view pad" id="v-lookup" hidden>
+    <section class="view pad" id="v-stats" hidden>
       <div class="wrap">
-        <h2>Registratie opzoeken</h2>
-        <div class="lookup-hero">
-          <input id="lookupInput" placeholder="PH-BXA" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Registratie">
-          <button class="btn primary" id="lookupBtn">Zoek</button>
-        </div>
-        <div class="row" id="ocrRow" hidden>
-          <label class="btn" for="ocrFile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l2-2h4l2 2"/></svg>Herken registratie op foto</label>
-          <input type="file" id="ocrFile" accept="image/*" hidden>
-          <span class="small muted" id="ocrState"></span>
-        </div>
-        <div id="lookupOut"></div>
+        <div class="stat-row" id="stats"></div>
+        <div id="statsBody" class="wrap" style="gap:22px"></div>
       </div>
     </section>
 
     <section class="view pad" id="v-db" hidden>
       <div class="wrap">
-        <div class="seg" role="group" aria-label="Database">
-          <button aria-pressed="true" data-seg="airlines">Maatschappijen</button>
-          <button aria-pressed="false" data-seg="airports">Luchthavens</button>
-          <button aria-pressed="false" data-seg="types">Types</button>
+        <div class="seg seg4" id="dbSeg" role="group" aria-label="Zoeken">
+          <button aria-pressed="true" data-seg="reg">Registratie</button>
+          <button aria-pressed="false" data-seg="airlines">Airline</button>
+          <button aria-pressed="false" data-seg="airports">Luchthaven</button>
+          <button aria-pressed="false" data-seg="types">Type</button>
         </div>
-        <div class="toolbar" id="dbToolbar"></div>
-        <div class="small muted" id="dbCount"></div>
-        <div id="dbList"></div>
-        <div class="row" style="justify-content:center"><button class="btn" id="dbMore" hidden>Toon meer</button></div>
+        <div id="dbReg" class="wrap" style="gap:16px">
+          <div class="lookup-hero">
+            <input id="lookupInput" placeholder="PH-BXA" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Registratie">
+            <button class="btn primary" id="lookupBtn">Zoek</button>
+          </div>
+          <div class="row" id="ocrRow" hidden>
+            <label class="btn" for="ocrFile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l2-2h4l2 2"/></svg>Van foto</label>
+            <input type="file" id="ocrFile" accept="image/*" hidden>
+            <span class="small muted" id="ocrState"></span>
+          </div>
+          <div id="lookupOut"></div>
+        </div>
+        <div class="toolbar" id="dbToolbar" hidden></div>
+        <div class="small muted" id="dbCount" hidden></div>
+        <div id="dbList" hidden></div>
+        <div class="row" style="justify-content:center"><button class="btn" id="dbMore" hidden>Meer</button></div>
+      </div>
+    </section>
+
+    <section class="view pad" id="v-settings" hidden>
+      <div class="wrap">
+        <div class="card">
+          <div class="lbl">Weergave</div>
+          <div class="setrow"><span>Thema</span><div class="seg seg3" id="setTheme"><button data-v="auto">Auto</button><button data-v="light">Licht</button><button data-v="dark">Donker</button></div></div>
+          <div class="setrow"><span>Labels</span><div class="seg seg3" id="setLbl"><button data-v="off">Uit</button><button data-v="al">Naam</button><button data-v="full">+ Type</button></div></div>
+          <label class="setrow check"><span>Legenda op de kaart</span><input type="checkbox" id="setLeg"></label>
+        </div>
+        <div class="card">
+          <div class="lbl">Meldingen</div>
+          <label class="setrow check"><span>Melding bij overvliegen</span><input type="checkbox" id="al-on"></label>
+          <div class="setrow"><span>Afstand</span><select id="al-km" class="input" style="width:auto"><option value="1">1 km</option><option value="2">2 km</option><option value="3">3 km</option><option value="5">5 km</option><option value="8">8 km</option><option value="10">10 km</option></select></div>
+          <label class="setrow check"><span>Alleen nieuwe toestellen</span><input type="checkbox" id="al-new"></label>
+          <label class="setrow check"><span>Bijzondere toestellen</span><input type="checkbox" id="al-spec"></label>
+          <div class="field"><label class="lbl" for="al-watch">Volglijst</label><input id="al-watch" class="input mono" placeholder="A3ST, PH-BHA, KLM685" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
+          <label class="setrow check"><span>Geluid</span><input type="checkbox" id="al-sound"></label>
+          <label class="setrow check"><span>Scherm aan laten</span><input type="checkbox" id="al-awake"></label>
+          <div class="row"><button class="btn" id="al-test">Test</button></div>
+        </div>
+        <div class="card">
+          <div class="lbl">Back-up</div>
+          <div class="row">
+            <button class="btn" id="exportBtn">Export JSON</button>
+            <button class="btn" id="exportCsvBtn">Export CSV</button>
+            <label class="btn" for="importFile">Importeer</label>
+            <input type="file" id="importFile" accept="application/json,.json" hidden>
+          </div>
+        </div>
+        <div class="card" id="setConn">
+          <div class="lbl">Verbinding</div>
+          <div id="diag" class="mono small" style="display:flex;flex-direction:column;gap:2px"></div>
+          <div class="field"><label class="lbl" for="proxyInput">Eigen proxy</label>
+            <div class="row" style="flex-wrap:nowrap"><input id="proxyInput" class="input mono" placeholder="leeg = ingebouwd" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url"><button class="btn" id="proxySave">Opslaan</button></div></div>
+          <div class="row"><button class="btn" id="retryBtn2">Opnieuw verbinden</button></div>
+        </div>
+        <div class="small muted" style="text-align:center">Data: adsb.lol · adsb.fi · adsbdb · Planespotters · OurAirports · OpenFlights · OpenStreetMap</div>
       </div>
     </section>
     <div class="loading-screen" id="loading"><div class="empty"><div class="spin"></div><b>Database laden</b><span>160.000 registraties, 3.200 luchthavens</span></div></div>
@@ -1018,8 +1052,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
   <nav class="tabs" role="tablist">
     <button role="tab" aria-selected="true" data-tab="radar"><span class="tabmark"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12l6-6"/></svg>Radar</button>
     <button role="tab" aria-selected="false" data-tab="log"><span class="tabmark"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h11l3 3v13H5z"/><path d="M9 10h7M9 14h7M9 18h4"/></svg>Logboek</button>
-    <button role="tab" aria-selected="false" data-tab="lookup"><span class="tabmark"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>Opzoeken</button>
-    <button role="tab" aria-selected="false" data-tab="db"><span class="tabmark"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>Database</button>
+    <button role="tab" aria-selected="false" data-tab="stats"><span class="tabmark"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Stats</button>
+    <button role="tab" aria-selected="false" data-tab="db"><span class="tabmark"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>Zoeken</button>
+    <button role="tab" aria-selected="false" data-tab="settings"><span class="tabmark"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Instellingen</button>
   </nav>
 </div>
 <div id="sheetRoot"></div>
@@ -1202,10 +1237,10 @@ function openSheet(titleHTML,bodyNode,{onClose}={}){
 const h=(html)=>{const d=document.createElement("div");d.style.cssText="display:flex;flex-direction:column;gap:14px";d.innerHTML=html;return d};
 
 /* ---------- tabs ---------- */
-const TABN={radar:"Radar",log:"Logboek",lookup:"Opzoeken",db:"Database"};
-function showTab(t){$$("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));
+const TABN={radar:"Radar",log:"Logboek",stats:"Statistieken",db:"Zoeken",settings:"Instellingen"};
+function showTab(t){if(t==="lookup"){seg="reg";setDbSeg();t="db"}if(!TABN[t])t="radar";$$("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));
   for(const k of Object.keys(TABN))$("#v-"+k).hidden=k!==t;$("#signDirTxt").textContent=TABN[t];LS.set("tab",t);
-  if(t==="radar"&&map)setTimeout(()=>map.invalidateSize(),50);if(t==="log")renderLog();if(t==="db")renderDB()}
+  if(t==="radar"&&map)setTimeout(()=>map.invalidateSize(),50);if(t==="log")renderLog();if(t==="stats")renderStats();if(t==="db")renderDB();if(t==="settings")syncSettings()}
 $$("nav.tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 
 /* ---------- radar ---------- */
@@ -1228,7 +1263,6 @@ function initMap(){
       L.circleMarker([a.lat,a.lon],{radius:a.t==="L"?5:3,color:cssv("--muted"),weight:1,fillColor:cssv("--surface"),fillOpacity:1}).bindTooltip(a.code+(a.iata?" / "+a.iata:"")+" · "+a.name,{direction:"top"}).addTo(apLayer)}};
   map.on("moveend",drawAps);drawAps();
   rangeCircle=L.circle([center.lat,center.lon],{radius:+$("#radiusSel").value*1852,color:cssv("--sign"),weight:1.5,fill:false,dashArray:"6 6"}).addTo(map);
-  $("#legend").innerHTML=[["--alt0","grond"],["--alt1","<5k ft"],["--alt2","<15k"],["--alt3","<30k"],["--alt4","30k+"]].map(([v,t])=>`<span><i style="background:var(${v})"></i>${t}</span>`).join("");
 }
 function setTiles(){if(!map)return;if(tileLayer)map.removeLayer(tileLayer);
   document.getElementById("map").classList.toggle("dark-tiles",isDark());
@@ -1261,8 +1295,9 @@ async function fetchLive(){const a=center.lat.toFixed(4),o=center.lon.toFixed(4)
     const res=await raceSrc(g,a,o,r);if(res){workIdx=res.i;srcIdx=res.i;LS.set("srcIdx",res.i);liveSlow=!!SRC[res.i].slow;return{ac:res.ac,src:SRC[res.i].n}}}
   throw new Error("offline")}
 function showDiag(){$("#bannerTitle").textContent="Geen live data";
-  $("#bannerText").textContent=ONLINE===true?"Overzicht van de live bronnen:":window.claude?"Binnen de Claude-app kan de pagina geen live bronnen bereiken. Open de versie op je eigen website.":(proxyBase()?"Ook via je eigen proxy kwam geen data. Controleer het adres en of de Worker is gedeployed.":"De live bronnen staan geen verzoeken vanuit een webpagina toe. Vul hieronder het adres van je eigen Cloudflare Worker in.");
-  $("#proxyInput").value=PROXY;$("#diag").innerHTML=(proxyBase()?`<span>proxy: ${esc(proxyBase())}</span>`:"")+SRC.map(s=>`<span>${esc(s.n)}: ${esc(DIAG[s.n]||"niet geprobeerd")}</span>`).join("")}
+  $("#bannerText").textContent=window.claude?"Werkt alleen in je eigen app, niet binnen Claude.":"";
+  $("#proxyInput").value=PROXY;
+  $("#diag").innerHTML=`<span>${ONLINE===true?"✓ live":"✕ geen live data"}${proxyBase()?" · via "+esc(proxyBase().replace(/^https:\/\//,"")):""}</span>`+SRC.filter(s=>DIAG[s.n]).map(s=>`<span class="muted">${esc(s.n)}: ${esc(DIAG[s.n])}</span>`).join("")}
 async function poll(){clearTimeout(timer);
   try{const {ac,src}=await fetchLive();setNet(true,"live · "+src);const at=document.getElementById("srcAttr");if(at)at.textContent="live: "+src;$("#offlineBanner").hidden=true;updateAircraft(ac)}
   catch{if(ONLINE!==true||!AC.length){setNet(false,"geen live data");showDiag();if(!bannerHidden)$("#offlineBanner").hidden=false}}
@@ -1327,9 +1362,9 @@ function openAircraft(hex){const a=AC.find(x=>x.hex===hex);if(!a)return;selected
   if(cs)Online.route(cs).then(r=>{const el=body.querySelector("#acRoute");if(!el)return;if(!r){el.textContent="niet bekend";return}
     const o=r.origin,d=r.destination;el.classList.remove("muted");el.innerHTML=`<span class="mono">${esc(o?.icao_code||"")}</span> ${esc(o?.municipality||o?.name||"")} → <span class="mono">${esc(d?.icao_code||"")}</span> ${esc(d?.municipality||d?.name||"")}`});
   Online.photo({hex,reg:a.reg}).then(p=>renderPhoto(body.querySelector("#acPhoto"),p))}
-function renderPhoto(el,p){if(!el)return;if(!p?.src){el.innerHTML=`<div class="empty small">Geen foto gevonden op Planespotters.</div>`;return}
+function renderPhoto(el,p){if(!el)return;if(!p?.src){el.innerHTML=`<div class="empty small">Geen foto</div>`;return}
   el.innerHTML=`<img src="${esc(p.src)}" alt="Foto van het toestel"><figcaption>© ${esc(p.by||"onbekend")} · <a href="${esc(p.link)}" target="_blank" rel="noopener">Planespotters.net</a></figcaption>`;
-  el.querySelector("img").onerror=()=>{el.innerHTML=`<div class="empty small">Foto kan hier niet worden geladen. <a href="${esc(p.link)}" target="_blank" rel="noopener">Bekijk op Planespotters.net</a></div>`}}
+  el.querySelector("img").onerror=()=>{el.innerHTML=`<div class="empty small"><a href="${esc(p.link)}" target="_blank" rel="noopener">Foto op Planespotters</a></div>`}}
 function nearestAirport(lat,lon){let best=null,bd=1e9;for(const a of DB.airports){if(a.t==="S")continue;const d=hav(lat,lon,a.lat,a.lon);if(d<bd){bd=d;best=a}}return bd<15?best:null}
 /* location search */
 function apSearch(q,limit=12){q=q.trim().toUpperCase();if(!q)return[];const out=[];
@@ -1366,7 +1401,7 @@ const alerted=new Map(),flashUntil=new Map();let audioCtx=null,wakeLock=null,ohT
 function beep(){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();const t0=audioCtx.currentTime;
   [0,.22].forEach((d,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type="sine";o.frequency.value=i?1175:880;
     g.gain.setValueAtTime(.0001,t0+d);g.gain.exponentialRampToValueAtTime(.35,t0+d+.02);g.gain.exponentialRampToValueAtTime(.0001,t0+d+.35);o.connect(g).connect(audioCtx.destination);o.start(t0+d);o.stop(t0+d+.4)})}catch{}}
-function setAlertUI(){$("#alertBtn").classList.toggle("on",ALERT.on);$("#alertBtnTxt").textContent=ALERT.on?ALERT.km+" km":"uit"}
+function setAlertUI(){$("#alertBtn").classList.toggle("on",ALERT.on);$("#alertBtn").title=ALERT.on?`Meldingen aan · ${ALERT.km} km`:"Meldingen uit"}
 async function keepAwake(){try{if(ALERT.on&&ALERT.awake&&"wakeLock" in navigator&&!document.hidden){wakeLock=await navigator.wakeLock.request("screen")}else if(wakeLock){await wakeLock.release();wakeLock=null}}catch{}}
 document.addEventListener("visibilitychange",keepAwake);
 function checkOverhead(){if(!ALERT.on||!AC.length)return;const ref=me||center;const now=Date.now();
@@ -1384,50 +1419,22 @@ function fireAlert(a,km){const al=airlineFromCallsign(a.flight);const cs=(a.flig
   if(ALERT.sound)beep();
   if(document.hidden&&!BG.on&&"Notification" in window&&Notification.permission==="granted"){const title=(isNew?"Nieuw: ":"Boven je: ")+cs;const opts={body:sub,icon:"icon-192.png",badge:"favicon-32.png",tag:"overhead-"+a.hex,vibrate:[250,120,250]};
     (navigator.serviceWorker?.ready||Promise.reject()).then(r=>r.showNotification(title,opts)).catch(()=>{try{new Notification(title,opts)}catch{}})}}
-function openAlertSettings(){const body=h(`
-  <label class="check" style="font-size:16px"><input type="checkbox" id="al-on" ${ALERT.on?"checked":""}> <b>Melding als er een toestel over me heen vliegt</b></label>
-  <div class="field"><label class="lbl" for="al-km">Binnen welke afstand van jou</label>
-    <select id="al-km" class="input">${[1,2,3,5,8,10].map(k=>`<option value="${k}" ${ALERT.km==k?"selected":""}>${k} km</option>`).join("")}</select></div>
-  <label class="check"><input type="checkbox" id="al-new" ${ALERT.onlyNew?"checked":""}> Alleen toestellen die ik nog nooit gespot heb</label>
-  <div class="lg-sep"></div>
-  <label class="check" style="font-size:16px"><input type="checkbox" id="al-spec" ${ALERT.special?"checked":""}> <b>Seintje bij bijzondere toestellen</b></label>
-  <div class="small muted">Binnen je hele radarbereik: zeldzame types, militair, noodcodes, types die je nog nooit gelogd hebt, en alles op je volglijst.</div>
-  <div class="field"><label class="lbl" for="al-watch">Volglijst (registraties, types of vluchtnummers, gescheiden door komma's)</label>
-    <input id="al-watch" class="input mono" placeholder="A3ST, A337, PH-BHA, KLM685" value="${esc(ALERT.watch||"")}" autocomplete="off" autocapitalize="characters" spellcheck="false">
-    <span class="small muted">Tip: zet hier speciale livery's op zodra je over eentje hoort. Een type (A388) of het begin van een vluchtnummer (BGA = Beluga) werkt ook.</span></div>
-  <div class="lg-sep"></div>
-  <label class="check"><input type="checkbox" id="al-sound" ${ALERT.sound?"checked":""}> Geluid afspelen</label>
-  <label class="check"><input type="checkbox" id="al-awake" ${ALERT.awake?"checked":""}> Scherm aan laten tijdens het spotten</label>
-  <div class="note small">Je krijgt een trilling, een geluid en een gele balk bovenin; het toestel knippert op de kaart. De afstand wordt gemeten vanaf je GPS-stip${me?"":" (nog geen GPS: dan vanaf het midden van de radar)"}. Meldingen werken zolang de app open is. Zet je scherm uit of sluit je de app, dan kan je telefoon de radar pauzeren en mis je meldingen; zet daarom "Scherm aan laten" aan.</div>
-  <div class="row"><button class="btn" id="al-test">Test melding in de app</button></div>
-  <div class="lg-sep"></div>
-  <label class="check" style="font-size:16px"><input type="checkbox" id="bg-on" ${BG.on?"checked":""}> <b>Ook melden als de app dicht is</b></label>
-  <div class="small muted">Je Cloudflare Worker kijkt elke minuut voor je en stuurt een pushmelding via de gratis app <b>ntfy</b>, ook als je telefoon in je zak zit.</div>
-  <div class="field"><label class="lbl" for="bg-worker">Adres van je Cloudflare Worker</label><input id="bg-worker" class="input mono" placeholder="https://….workers.dev" value="${esc(BG.worker)}" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url"></div>
-  <div class="field"><label class="lbl" for="bg-topic">Jouw ntfy-onderwerp</label><div class="row" style="flex-wrap:nowrap"><input id="bg-topic" class="input mono" value="${esc(BG.topic)}" autocomplete="off" autocapitalize="none" spellcheck="false"><button class="btn" id="bg-copy" type="button">Kopieer</button></div>
-    <span class="small muted">Abonneer je in de ntfy-app op precies dit onderwerp. Hou het geheim: wie het weet, ziet jouw meldingen.</span></div>
-  <div class="row"><button class="btn" id="bg-test" type="button">Stuur proefmelding</button><span class="small muted" id="bg-state"></span></div>
-  <div class="lg-sep"></div>
-  <div class="row"><button class="btn primary" id="al-save">Opslaan</button></div>`);
-  const sh=openSheet(`<div class="lbl">Radar</div><h2>Melding bij overvliegen</h2>`,body);const q=s=>body.querySelector(s);
-  q("#al-test").onclick=()=>{try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch{}
-    const a=AC.slice().sort((x,y)=>x.dist-y.dist).find(x=>x.alt_baro!=="ground");if(!a){toast("Geen toestel in de lucht om mee te testen");return}
-    const ref=me||center;const s=ALERT.sound;ALERT.sound=q("#al-sound").checked;sh.close();fireAlert(a,hav(ref.lat,ref.lon,a.lat,a.lon)*1.852);ALERT.sound=s};
-  q("#al-save").onclick=async()=>{ALERT.on=q("#al-on").checked;ALERT.km=+q("#al-km").value;ALERT.onlyNew=q("#al-new").checked;ALERT.sound=q("#al-sound").checked;ALERT.awake=q("#al-awake").checked;ALERT.special=q("#al-spec").checked;ALERT.watch=q("#al-watch").value.toUpperCase().replace(/\s+/g," ").trim();
-    LS.set("alert",ALERT);setAlertUI();readBg(q);
-    if(ALERT.on){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch{}
-      try{if("Notification" in window&&Notification.permission==="default")await Notification.requestPermission()}catch{}
-      if(!me)$("#gpsBtn").click()}
-    keepAwake();sh.close();toast(ALERT.on?`Meldingen aan: binnen ${ALERT.km} km`:"Meldingen uit");checkOverhead();
-    if(BG.worker&&BG.topic)syncBg(true).then(r=>{if(r&&r.fout)toast("Achtergrondmelding: "+r.fout)})}
-  q("#bg-copy").onclick=()=>{const v=q("#bg-topic").value;navigator.clipboard?.writeText(v).then(()=>toast("Gekopieerd"),()=>{q("#bg-topic").select()})};
-  q("#bg-test").onclick=async()=>{readBg(q);const st=q("#bg-state");if(!BG.worker||!BG.topic){st.textContent="Vul eerst het Worker-adres en onderwerp in.";return}
-    st.textContent="Versturen…";const r=await syncBg(true);if(r&&r.fout){st.textContent="Fout: "+r.fout;return}
-    try{const res=await fetch(bgUrl("/testmelding"));const j=await res.json();st.textContent=j.ok?"Verstuurd! Kijk op je telefoon.":"Fout: "+(j.fout||res.status)}catch{st.textContent="Worker niet bereikbaar. Klopt het adres?"}}}
-$("#alertBtn").onclick=openAlertSettings;
-function setLblUI(){$("#lblBtnTxt").textContent=LBL_TXT[LBL];$("#lblBtn").classList.toggle("on",LBL!=="off")}
-$("#lblBtn").onclick=()=>{LBL={al:"full",full:"off",off:"al"}[LBL];LS.set("labels",LBL);setLblUI();if(AC.length)updateAircraft(AC);
-  toast({al:"Labels: maatschappij + vluchtnummer",full:"Labels: maatschappij, vluchtnummer en type",off:"Labels uit"}[LBL])};
+async function alertsOn(){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch{}
+  try{if("Notification" in window&&Notification.permission==="default")await Notification.requestPermission()}catch{}
+  if(!me)$("#gpsBtn").click()}
+function saveAlert(){const q=s=>$(s);const was=ALERT.on;
+  ALERT.on=q("#al-on").checked;ALERT.km=+q("#al-km").value;ALERT.onlyNew=q("#al-new").checked;ALERT.sound=q("#al-sound").checked;ALERT.awake=q("#al-awake").checked;ALERT.special=q("#al-spec").checked;
+  ALERT.watch=q("#al-watch").value.toUpperCase().replace(/\s+/g," ").trim();LS.set("alert",ALERT);setAlertUI();keepAwake();if(ALERT.on&&!was)alertsOn();checkOverhead()}
+$("#alertBtn").onclick=()=>{ALERT.on=!ALERT.on;LS.set("alert",ALERT);setAlertUI();keepAwake();if(ALERT.on)alertsOn();toast(ALERT.on?`Meldingen aan · ${ALERT.km} km`:"Meldingen uit");checkOverhead()};
+["#al-on","#al-km","#al-new","#al-spec","#al-sound","#al-awake"].forEach(id=>$(id).addEventListener("change",saveAlert));
+$("#al-watch").addEventListener("change",saveAlert);
+$("#al-test").onclick=()=>{try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume()}catch{}
+  const a=AC.slice().sort((x,y)=>x.dist-y.dist).find(x=>x.alt_baro!=="ground");if(!a){toast("Geen toestel in de lucht");return}
+  const ref=me||center;showTab("radar");fireAlert(a,hav(ref.lat,ref.lon,a.lat,a.lon)*1.852)};
+function setLblUI(){$("#lblBtn").classList.toggle("on",LBL!=="off");$$("#setLbl button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===LBL))}
+function setLbl(v){LBL=v;LS.set("labels",LBL);setLblUI();if(AC.length)updateAircraft(AC)}
+$$("#setLbl button").forEach(b=>b.onclick=()=>setLbl(b.dataset.v));
+$("#lblBtn").onclick=()=>{setLbl({al:"full",full:"off",off:"al"}[LBL]);toast({al:"Labels: naam",full:"Labels: naam + type",off:"Labels uit"}[LBL])};
 /* runway in use, derived from live traffic */
 const RWY=JSON.parse(document.getElementById("d-rw").textContent);
 const RWY_NAMES={EHAM:{"18R":"Polderbaan","36L":"Polderbaan","18C":"Zwanenburgbaan","36C":"Zwanenburgbaan","18L":"Aalsmeerbaan","36R":"Aalsmeerbaan","06":"Kaagbaan","24":"Kaagbaan","09":"Buitenveldertbaan","27":"Buitenveldertbaan","04":"Oostbaan","22":"Oostbaan"}};
@@ -1462,11 +1469,10 @@ addEventListener("resize",placeOverlays);
 function renderRunwayPanel(code,obs){const panel=$("#rwyPanel");const land=rwySummary(obs,"land"),dep=rwySummary(obs,"dep");
   if(!land.length&&!dep.length){panel.hidden=true;return}placeOverlays();
   const fmt=(arr,cls)=>arr.slice(0,3).map(([id,n])=>`<span class="rwsign${cls}">${esc(id)}</span>${RWY_NAMES[code]?.[id]?`<span class="small">${esc(RWY_NAMES[code][id])}</span>`:""}<span class="small muted">${n}×</span>`).join(" ");
-  panel.innerHTML=`<span class="rw-h">${esc(code)} · banen in gebruik (laatste 20 min)</span>${land.length?`<span class="rw-l"><span class="small">🛬 Landen</span>${fmt(land,"")}</span>`:""}${dep.length?`<span class="rw-l"><span class="small">🛫 Starten</span>${fmt(dep," dep")}</span>`:""}`;
+  panel.innerHTML=`<span class="rw-h">${esc(code)} · banen</span>${land.length?`<span class="rw-l"><span class="small">🛬 Landen</span>${fmt(land,"")}</span>`:""}${dep.length?`<span class="rw-l"><span class="small">🛫 Starten</span>${fmt(dep," dep")}</span>`:""}`;
   panel.hidden=false;panel.onclick=()=>openRunways(code)}
 function openRunways(code){const ap=DB.apByCode.get(code);const obs=(rwyObs.get(code)||[]).slice().sort((a,b)=>b.t-a.t);
-  const body=h(`<div class="note small">Afgeleid uit live ADS-B: toestellen die laag en recht in het verlengde van een baan dalen (landen) of klimmen (starten). Na een baanwissel duurt het een paar minuten voordat het klopt.</div>
-   <div class="card"><div class="lbl">Banen van ${esc(code)}</div>${(RWY[code]||[]).map(r=>`<div class="row small"><span class="rwsign">${esc(r[0])}</span><span class="rwsign">${esc(r[3])}</span><span>${esc(RWY_NAMES[code]?.[r[0]]||"")}</span></div>`).join("")}</div>
+  const body=h(`<div class="card"><div class="lbl">Banen van ${esc(code)}</div>${(RWY[code]||[]).map(r=>`<div class="row small"><span class="rwsign">${esc(r[0])}</span><span class="rwsign">${esc(r[3])}</span><span>${esc(RWY_NAMES[code]?.[r[0]]||"")}</span></div>`).join("")}</div>
    <div class="card"><div class="lbl">Laatste waarnemingen</div>${obs.length?obs.slice(0,25).map(o=>`<div class="row small"><span>${o.kind==="land"?"🛬":"🛫"}</span><span class="rwsign${o.kind==="dep"?" dep":""}">${esc(o.rwy)}</span><span class="mono">${esc(o.cs)}</span><span class="muted">${esc(fmtTime(o.t))}</span></div>`).join(""):"<span class='muted small'>Nog niets gezien.</span>"}</div>`);
   openSheet(`<div class="lbl">Baangebruik</div><h2>${esc(ap?.name||code)}</h2>`,body)}
 /* light / dark / auto */
@@ -1475,10 +1481,13 @@ const THEME_ICONS={auto:'<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
   dark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>'};
 const THEME_LBL={auto:"Thema: automatisch (volgt je telefoon)",light:"Thema: licht",dark:"Thema: donker"};
 function applyTheme(m){const r=document.documentElement;if(m==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",m);
-  $("#themeBtn").innerHTML=THEME_ICONS[m];$("#themeBtn").title=THEME_LBL[m];
+  $$("#setTheme button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===m));
   if(map){setTiles();map.fire("moveend");if(AC.length)updateAircraft(AC);if(meAcc){meAcc.setStyle({color:cssv("--me"),fillColor:cssv("--me")})}if(rangeCircle)rangeCircle.setStyle({color:cssv("--sign")})}}
 let themeMode=LS.get("theme","auto");if(!THEME_ICONS[themeMode])themeMode="auto";
-$("#themeBtn").onclick=()=>{themeMode={auto:"light",light:"dark",dark:"auto"}[themeMode];LS.set("theme",themeMode);applyTheme(themeMode);toast(THEME_LBL[themeMode])};
+$$("#setTheme button").forEach(b=>b.onclick=()=>{themeMode=b.dataset.v;LS.set("theme",themeMode);applyTheme(themeMode)});
+$("#setLeg").onchange=e=>setLegend(e.target.checked);
+function syncSettings(){$("#al-on").checked=ALERT.on;$("#al-km").value=String(ALERT.km);$("#al-new").checked=ALERT.onlyNew;$("#al-spec").checked=ALERT.special;
+  $("#al-sound").checked=ALERT.sound;$("#al-awake").checked=ALERT.awake;$("#al-watch").value=ALERT.watch||"";$("#setLeg").checked=!$("#legCard").hidden;setLblUI();showDiag()}
 /* background alerts through the user's Cloudflare Worker + ntfy */
 const BG=Object.assign({on:false,worker:"",topic:"",prev:""},LS.get("bg",{}));
 if(!BG.topic){BG.topic="spotlog-"+Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>"abcdefghjkmnpqrstuvwxyz23456789"[b%31]).join("");LS.set("bg",BG)}
@@ -1493,8 +1502,8 @@ async function syncBg(force){if(!BG.worker||!BG.topic)return null;const pos=me||
     seen:[...seenCount.keys()],proxy:BUILTIN_PROXY||"",app:location.origin+location.pathname};
   try{const r=await fetch(bgUrl("/config"),{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));
     if(r.ok&&BG.prev){BG.prev="";LS.set("bg",BG)}return r.ok?j:{fout:j.fout||("HTTP "+r.status)}}catch{return{fout:"Worker niet bereikbaar"}}}
-function setLegend(open){$("#legCard").hidden=!open;$("#legBtn").hidden=open;$("#legBtn").setAttribute("aria-expanded",open);LS.set("legend",open)}
-$("#legBtn").onclick=()=>setLegend(true);$("#legClose").onclick=()=>setLegend(false);
+function setLegend(open){$("#legCard").hidden=!open;$("#legBtn").setAttribute("aria-expanded",open);LS.set("legend",open);const c=$("#setLeg");if(c)c.checked=open}
+$("#legBtn").onclick=()=>setLegend($("#legCard").hidden);$("#legClose").onclick=()=>setLegend(false);
 /* you-are-here dot */
 let me=null,meMarker=null,meAcc=null,watchId=null;
 function showMe(p){me={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy||0};LS.set("meOn",true);if(BG.on)syncBg(false);if(!map)return;
@@ -1506,8 +1515,9 @@ function watchMe(){if(!navigator.geolocation||watchId!=null)return;
   watchId=navigator.geolocation.watchPosition(showMe,e=>{if(e.code===1){LS.set("meOn",false);navigator.geolocation.clearWatch(watchId);watchId=null}},{enableHighAccuracy:true,maximumAge:5000,timeout:20000})}
 $("#gpsBtn").onclick=()=>{if(!navigator.geolocation){toast("Locatie is niet beschikbaar in deze weergave");return}
   navigator.geolocation.getCurrentPosition(p=>{showMe(p);watchMe();setCenter(p.coords.latitude,p.coords.longitude,nearestAirport(p.coords.latitude,p.coords.longitude)?.code||"GPS")},()=>toast("Locatie geweigerd. Sta locatie toe in je browserinstellingen, of kies een luchthaven in het zoekveld."),{timeout:10000,enableHighAccuracy:true})};
+$("#bannerMore").onclick=()=>showTab("settings");$("#retryBtn2").onclick=()=>{$("#netTxt").textContent="opnieuw…";DIAG={};poll().then(syncSettings)};
 $("#retryBtn").onclick=()=>{bannerHidden=false;$("#netTxt").textContent="opnieuw…";poll()};$("#proxySave").onclick=()=>{let v=$("#proxyInput").value.trim();if(v&&!/^https:\/\//.test(v))v="https://"+v.replace(/^http:\/\//,"");PROXY=v;LS.set("proxy",v);workIdx=null;firstRound=false;DIAG={};toast(v?"Proxy opgeslagen, live data ophalen…":"Proxy verwijderd");bannerHidden=false;poll()};
-$("#netStatus").onclick=()=>{showDiag();bannerHidden=false;$("#offlineBanner").hidden=false;$("#bannerTitle").textContent=ONLINE===true?"Live data werkt":"Geen live data"};$("#netStatus").style.cursor="pointer";$("#hideBanner").onclick=()=>{bannerHidden=true;$("#offlineBanner").hidden=true};
+$("#netStatus").onclick=()=>{showTab("settings");setTimeout(()=>$("#setConn").scrollIntoView({block:"start",behavior:"smooth"}),60)};$("#netStatus").style.cursor="pointer";$("#hideBanner").onclick=()=>{bannerHidden=true;$("#offlineBanner").hidden=true};
 $("#listBtn").onclick=()=>{$("#acList").hidden=false;renderAcList()};$("#closeList").onclick=()=>$("#acList").hidden=true;$("#onlyNew").onchange=renderAcList;
 
 /* ---------- spot form ---------- */
@@ -1535,12 +1545,12 @@ function openSpotForm(pre={},existing=null){ensureDatalists();
       <div class="field"><label class="lbl" for="f-type">Type (ICAO)</label><input id="f-type" list="dl-ty" class="mono" value="${esc(s0.type||pre.type||"")}" autocomplete="off"></div>
       <div class="field"><label class="lbl" for="f-airline">Maatschappij</label><input id="f-airline" list="dl-al" value="${esc(airlineLabel(s0.airlineIcao||pre.airlineIcao)||s0.airlineName||"")}" autocomplete="off"></div>
       <div class="field"><label class="lbl" for="f-ap">Locatie</label><input id="f-ap" list="dl-ap" value="${esc(apLabel(defAp))}" autocomplete="off"></div>
-      <div class="field"><label class="lbl" for="f-date">Datum <span style="text-transform:none;letter-spacing:0;font-weight:500">· tijd optioneel</span></label>
+      <div class="field"><label class="lbl" for="f-date">Datum</label>
         <div class="row" style="flex-wrap:nowrap"><input id="f-date" type="date" class="input" style="flex:1 1 60%;min-width:0" value="${esc(defDate)}"><input id="f-time" type="time" class="input" style="flex:1 1 40%;min-width:0" value="${esc(defTime)}" aria-label="Tijd (optioneel)"></div></div>
       <div class="field"><label class="lbl" for="f-cs">Vluchtnummer / callsign</label><input id="f-cs" class="mono" value="${esc(s0.callsign||pre.callsign||"")}" autocomplete="off"></div>
       <div class="field"><label class="lbl" for="f-hex">Mode-S (hex)</label><input id="f-hex" class="mono" value="${esc(s0.hex||pre.hex||"")}" autocomplete="off"></div>
     </div>
-    <div class="field"><label class="lbl" for="f-notes">Notities</label><textarea id="f-notes" placeholder="Bijzondere livery, baan, weer…">${esc(s0.notes||"")}</textarea></div>
+    <div class="field"><label class="lbl" for="f-notes">Notities</label><textarea id="f-notes" placeholder="Notities">${esc(s0.notes||"")}</textarea></div>
     <div class="field"><span class="lbl">Foto's</span><div class="thumbs" id="f-thumbs"></div>
       <div class="row"><label class="btn" for="f-photos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Foto toevoegen</label><input type="file" id="f-photos" accept="image/*" multiple hidden></div></div>
     <div class="row" style="justify-content:flex-end">${existing?"":`<button type="submit" class="btn" id="f-next">Opslaan + volgende</button>`}<button type="submit" class="btn primary" id="f-save">${existing?"Wijzigingen opslaan":"Spot opslaan"}</button></div>
@@ -1567,7 +1577,7 @@ function openSpotForm(pre={},existing=null){ensureDatalists();
       if(res.online?.registered_owner)bits.push(res.online.registered_owner);
       const n=seenCount.get(normReg(l?.reg||v))||0;if(!existing)bits.push(n?`al ${n}× gespot`:"nieuw voor jou");
       if(!res.done){auto.className="autofill"+(l?" ok":"");auto.innerHTML=(l?"✓ "+esc(bits.join(" · "))+" · ":"")+`<div class="spin"></div>online zoeken…`}
-      else{auto.className="autofill"+(l||res.online?" ok":"");auto.textContent=(l||res.online)?"✓ "+bits.join(" · "):(ONLINE===false?"Niet in de Europese database en online niet bereikbaar. Vul het type zelf in.":"Niet gevonden, ook niet online. Controleer de registratie (met streepje, bv. B-6113) of vul het type zelf in.")}})};
+      else{auto.className="autofill"+(l||res.online?" ok":"");auto.textContent=(l||res.online)?"✓ "+bits.join(" · "):"Niet gevonden"}})};
   q("#f-reg").addEventListener("input",e=>{const el=e.target,pos=el.selectionStart;if(el.value!==el.value.toUpperCase()){el.value=el.value.toUpperCase();try{el.setSelectionRange(pos,pos)}catch{}}clearTimeout(tmr);tmr=setTimeout(doLookup,450)});
   if(q("#f-reg").value&&!existing)doLookup();
   setupOCR(q("#f-ocrBtn"),q("#f-ocr"),r=>{q("#f-reg").value=r.registration;if(r.airline){const a=parseAirline(r.airline)||DB.airlines.find(x=>x.name.toLowerCase()===r.airline.toLowerCase())?.icao;if(a)fill("#f-airline",airlineLabel(a))}doLookup()},async f=>{const b=await resizeImage(f);newBlobs.push({blob:b,url:URL.createObjectURL(b)});drawThumbs()});
@@ -1601,14 +1611,13 @@ function updateSelBar(){$("#selBar").hidden=!selMode;$("#selBtn").textContent=se
   $("#selCnt").textContent=`${picked.size} geselecteerd`;const d=$("#selDel");d.disabled=!picked.size;d.classList.remove("armed");d.textContent=picked.size?`Verwijder ${picked.size}`:"Verwijderen"}
 async function renderLog(){updateSelBar();const q=$("#logSearch").value.trim().toUpperCase();const flt=$("#logFilter").value;
   const regs=new Set(SPOTS.map(s=>normReg(s.reg)));const types=new Set(SPOTS.map(s=>s.type).filter(Boolean));const als=new Set(SPOTS.map(s=>s.airlineIcao||s.airlineName).filter(Boolean));
-  $("#stats").innerHTML=[[SPOTS.length,"spots"],[regs.size,"registraties"],[types.size,"types"],[als.size,"maatschappijen"]].map(([n,l])=>`<div class="stat"><span class="n">${n}</span><span class="lbl">${l}</span></div>`).join("");
-  renderStats();
+  $("#logCount").textContent=SPOTS.length?`${SPOTS.length} spots · ${regs.size} toestellen`:"";
   // first sighting per reg
   const firstId=new Map();[...SPOTS].reverse().forEach(s=>{const k=normReg(s.reg);if(!firstId.has(k))firstId.set(k,s.id)});
   let list=SPOTS.filter(s=>!q||[s.reg,s.type,s.airlineName,s.airlineIcao,s.airport,s.callsign,s.notes,typeDesc(s.type)].join(" ").toUpperCase().includes(q));
   if(flt==="first")list=list.filter(s=>firstId.get(normReg(s.reg))===s.id);if(flt==="photo")list=list.filter(s=>s.photos?.length);
-  if(!SPOTS.length){$("#logList").innerHTML=`<div class="empty card"><b>Nog geen spots</b><span>Tik op <b style="font-size:inherit">Nieuwe spot</b> en typ een registratie: type, Mode-S en maatschappij vullen zich vanzelf in. Of open een toestel op de radar en kies "Log deze spot".</span>${Store.persistent?"":"<span class='small'>Let op: deze weergave kan niet blijvend opslaan. Maak een export voordat je sluit.</span>"}</div>`;return}
-  if(!list.length){$("#logList").innerHTML=`<div class="empty"><b>Geen resultaten</b><span>Pas je zoekterm of filter aan.</span></div>`;return}
+  if(!SPOTS.length){$("#logList").innerHTML=`<div class="empty"><b>Nog geen spots</b></div>`;return}
+  if(!list.length){$("#logList").innerHTML=`<div class="empty"><b>Geen resultaten</b></div>`;return}
   lastShown=list;
   const groups=new Map();for(const s of list){const d=s.date.slice(0,10);if(!groups.has(d))groups.set(d,[]);groups.get(d).push(s)}
   const html=[];for(const [d,arr] of groups){html.push(`<div class="daygroup"><div class="lbl">${esc(fmtDate(d))} · ${arr.length}</div>${selMode?`<button class="daysel" data-day="${d}" type="button">Selecteer dag</button>`:""}${arr.map(s=>`<button class="strip${picked.has(s.id)?" picked":""}" data-id="${s.id}">
@@ -1620,7 +1629,9 @@ async function renderLog(){updateSelBar();const q=$("#logSearch").value.trim().t
   $$("#logList .strip").forEach(b=>b.onclick=()=>{if(selMode){const id=b.dataset.id;picked.has(id)?picked.delete(id):picked.add(id);renderLog()}else openSpot(b.dataset.id)});
   $$("#logList .daysel").forEach(b=>b.onclick=()=>{const ids=lastShown.filter(s=>s.date.slice(0,10)===b.dataset.day).map(s=>s.id);const all=ids.every(i=>picked.has(i));ids.forEach(i=>all?picked.delete(i):picked.add(i));renderLog()});
   $("#logList").classList.toggle("selmode",selMode);updateSelBar()}
-function renderStats(){const card=$("#statsCard");if(!SPOTS.length){card.hidden=true;return}card.hidden=false;
+function renderStats(){const regs=new Set(SPOTS.map(s=>normReg(s.reg))),types=new Set(SPOTS.map(s=>s.type).filter(Boolean)),als=new Set(SPOTS.map(s=>s.airlineIcao||s.airlineName).filter(Boolean));
+  $("#stats").innerHTML=[[SPOTS.length,"spots"],[regs.size,"toestellen"],[types.size,"types"],[als.size,"airlines"]].map(([n,l])=>`<div class="stat"><span class="n">${n}</span><span class="lbl">${l}</span></div>`).join("");
+  if(!SPOTS.length){$("#statsBody").innerHTML=`<div class="empty"><b>Nog geen spots</b></div>`;return}
   const count=(f)=>{const m=new Map();for(const s of SPOTS){const k=f(s);if(k)m.set(k,(m.get(k)||0)+1)}return[...m.entries()].sort((a,b)=>b[1]-a[1])};
   const bars=(arr,lab)=>{const max=arr[0]?.[1]||1;return`<div class="bars">${arr.slice(0,8).map(([k,n])=>`<div class="bar"><span class="bl" title="${esc(lab(k))}">${esc(lab(k))}</span><span class="bt"><i style="width:${Math.max(4,n/max*100)}%"></i></span><span class="bv">${n}</span></div>`).join("")}</div>`};
   const byAl=count(s=>s.airlineName||null),byType=count(s=>s.type||null),byAp=count(s=>s.airport||null),byReg=count(s=>s.reg?normReg(s.reg):null),byDay=count(s=>s.date.slice(0,10));
@@ -1687,7 +1698,7 @@ $("#importFile").onchange=async e=>{const f=e.target.files[0];e.target.value="";
 /* ---------- lookup tab ---------- */
 async function runLookup(){const v=$("#lookupInput").value.trim();const out=$("#lookupOut");if(!v){out.innerHTML="";return}
   await lookupReg(v,res=>{const l=res.local,o=res.online,live=res.live;const reg=l?.reg||o?.registration||v.toUpperCase();const n=seenCount.get(normReg(reg))||0;
-    if(!l&&!o&&res.done){out.innerHTML=`<div class="card"><b>${esc(v.toUpperCase())} niet gevonden</b><span class="muted small">De offline database bevat Europese registraties (Mode-S 3xxxxx–51xxxx). ${ONLINE===false?"Online zoeken is in deze weergave niet beschikbaar.":"Ook online niets gevonden."} Je kunt de spot wel handmatig loggen.</span><div class="row"><button class="btn primary" id="lkLog">Log als spot</button></div></div>`;out.querySelector("#lkLog").onclick=()=>openSpotForm({reg:v.toUpperCase()});return}
+    if(!l&&!o&&res.done){out.innerHTML=`<div class="card"><b>${esc(v.toUpperCase())} niet gevonden</b><div class="row"><button class="btn primary" id="lkLog">Log als spot</button></div></div>`;out.querySelector("#lkLog").onclick=()=>openSpotForm({reg:v.toUpperCase()});return}
     const type=l?.type||o?.icao_type||"";
     out.innerHTML=`<div class="wrap" style="gap:14px"><div class="photo" id="lkPhoto">${res.done?"":`<div class="empty small"><div class="spin"></div>Foto zoeken…</div>`}</div>
      <div class="card"><div class="row" style="justify-content:space-between"><span class="big-reg">${esc(reg)}</span><span>${n?`<span class="chip seen">${n}× gespot</span>`:`<span class="chip new">nieuw voor jou</span>`} ${l?.mil?'<span class="chip mil">militair</span>':""}</span></div>
@@ -1708,15 +1719,17 @@ async function runLookup(){const v=$("#lookupInput").value.trim();const out=$("#
 $("#lookupBtn").onclick=runLookup;$("#lookupInput").addEventListener("keydown",e=>{if(e.key==="Enter")runLookup()});
 
 /* ---------- database tab ---------- */
-let seg="airlines",shown=60;
-function toolbar(){const tb=$("#dbToolbar");const keep=id=>tb.querySelector("#"+id)?.value;
-  if(seg==="airlines")tb.innerHTML=`<input class="input" id="dbq" placeholder="Naam, ICAO, IATA of roepnaam" aria-label="Zoek maatschappij"><select id="dbScope" aria-label="Regio"><option value="eu">Europa</option><option value="all">Wereldwijd</option><option value="info">Met uitgebreide info</option></select><label class="check"><input type="checkbox" id="dbActive" checked> Alleen actief</label>`;
+let seg="reg",shown=60;
+function toolbar(){const tb=$("#dbToolbar");if(seg==="reg"){tb.innerHTML="";return}const keep=id=>tb.querySelector("#"+id)?.value;
+  if(seg==="airlines")tb.innerHTML=`<input class="input" id="dbq" placeholder="Naam of code" aria-label="Zoek maatschappij"><select id="dbScope" aria-label="Regio"><option value="eu">Europa</option><option value="all">Wereldwijd</option><option value="info">Met uitgebreide info</option></select><label class="check"><input type="checkbox" id="dbActive" checked> Alleen actief</label>`;
   if(seg==="airports"){const ccs=[...new Set(DB.airports.map(a=>a.cc))].map(c=>[c,regionName(c)]).sort((a,b)=>a[1].localeCompare(b[1],"nl"));
-    tb.innerHTML=`<input class="input" id="dbq" placeholder="ICAO, IATA, naam of stad" aria-label="Zoek luchthaven"><select id="dbCc" aria-label="Land"><option value="">Alle landen</option>${ccs.map(([c,n])=>`<option value="${c}">${esc(n)}</option>`).join("")}</select><select id="dbAt" aria-label="Soort"><option value="">Alle soorten</option><option value="L">Groot</option><option value="M">Middelgroot</option><option value="S">Klein / GA</option></select>`}
-  if(seg==="types")tb.innerHTML=`<input class="input" id="dbq" placeholder="Typecode (B738) of naam (Embraer)" aria-label="Zoek type"><select id="dbSort" aria-label="Sortering"><option value="eu">Meest in Europa</option><option value="code">Op code</option><option value="mine">Door mij gespot</option></select>`;
+    tb.innerHTML=`<input class="input" id="dbq" placeholder="Code, naam of stad" aria-label="Zoek luchthaven"><select id="dbCc" aria-label="Land"><option value="">Alle landen</option>${ccs.map(([c,n])=>`<option value="${c}">${esc(n)}</option>`).join("")}</select><select id="dbAt" aria-label="Soort"><option value="">Alle soorten</option><option value="L">Groot</option><option value="M">Middelgroot</option><option value="S">Klein / GA</option></select>`}
+  if(seg==="types")tb.innerHTML=`<input class="input" id="dbq" placeholder="B738, Embraer…" aria-label="Zoek type"><select id="dbSort" aria-label="Sortering"><option value="eu">Meest in Europa</option><option value="code">Op code</option><option value="mine">Door mij gespot</option></select>`;
   tb.querySelectorAll("input,select").forEach(i=>i.addEventListener(i.tagName==="INPUT"&&i.type!=="checkbox"?"input":"change",()=>{shown=60;renderDB(false)}))}
-$$(".seg button").forEach(b=>b.onclick=()=>{seg=b.dataset.seg;$$(".seg button").forEach(x=>x.setAttribute("aria-pressed",x===b));shown=60;toolbar();renderDB(false)});
-function renderDB(rebuild=true){if(rebuild&&!$("#dbq"))toolbar();const q=($("#dbq")?.value||"").trim().toUpperCase();let rows=[],html="";
+function setDbSeg(){$$("#dbSeg button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.seg===seg))}
+$$("#dbSeg button").forEach(b=>b.onclick=()=>{seg=b.dataset.seg;setDbSeg();shown=60;toolbar();renderDB(false)});
+function renderDB(rebuild=true){const isReg=seg==="reg";$("#dbReg").hidden=!isReg;["#dbToolbar","#dbCount","#dbList"].forEach(s=>$(s).hidden=isReg);
+  if(isReg){$("#dbMore").hidden=true;return}if(rebuild&&!$("#dbq"))toolbar();const q=($("#dbq")?.value||"").trim().toUpperCase();let rows=[],html="";
   if(seg==="airlines"){const scope=$("#dbScope").value,act=$("#dbActive").checked;const myAl=new Map();SPOTS.forEach(s=>s.airlineIcao&&myAl.set(s.airlineIcao,(myAl.get(s.airlineIcao)||0)+1));
     rows=DB.airlines.filter(a=>(scope==="all"||(scope==="eu"?a.eu:!!a.info))&&(!act||a.active)&&(!q||a.icao===q||a.iata===q||a.name.toUpperCase().includes(q)||(a.cs||"").includes(q)));
     if(q)rows.sort((a,b)=>(b.icao===q)-(a.icao===q)||(b.iata===q)-(a.iata===q));
@@ -1731,8 +1744,8 @@ function renderDB(rebuild=true){if(rebuild&&!$("#dbq"))toolbar();const q=($("#db
     rows.sort(sort==="code"?(a,b)=>a.c.localeCompare(b.c):sort==="mine"?(a,b)=>b.mine-a.mine:(a,b)=>b.eu-a.eu||b.n-a.n);
     if(q)rows.sort((a,b)=>(b.c===q)-(a.c===q));
     html=rows.slice(0,shown).map(t=>`<button class="dbrow" data-ty="${t.c}"><span class="code">${t.c}</span><span class="nm">${esc(prettyType(t.c))}</span><span class="end">${t.mine?`<span class="chip seen">${t.mine}</span>`:""}</span><span class="sb">${t.eu.toLocaleString("nl-NL")} in Europa geregistreerd</span></button>`).join("")}
-  $("#dbCount").textContent=`${rows.length.toLocaleString("nl-NL")} resultaten`;
-  $("#dbList").innerHTML=html||`<div class="empty"><b>Niets gevonden</b><span>Probeer een andere zoekterm of verruim het filter.</span></div>`;
+  $("#dbCount").textContent=rows.length.toLocaleString("nl-NL");
+  $("#dbList").innerHTML=html||`<div class="empty"><b>Niets gevonden</b></div>`;
   $("#dbMore").hidden=rows.length<=shown;
   $$("#dbList [data-al]").forEach(b=>b.onclick=()=>openAirline(b.dataset.al));$$("#dbList [data-ap]").forEach(b=>b.onclick=()=>openAirport(b.dataset.ap));$$("#dbList [data-ty]").forEach(b=>b.onclick=()=>openType(b.dataset.ty))}
 $("#dbMore").onclick=()=>{shown+=100;renderDB(false)};
@@ -1774,18 +1787,18 @@ if("serviceWorker" in navigator&&location.protocol==="https:"){navigator.service
 let installEvt=null;addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e;$("#installBtn").hidden=false});
 $("#installBtn").onclick=async()=>{if(!installEvt)return;installEvt.prompt();await installEvt.userChoice.catch(()=>{});installEvt=null;$("#installBtn").hidden=true};
 addEventListener("appinstalled",()=>{$("#installBtn").hidden=true;toast("Spotlog staat nu op je beginscherm")});
-addEventListener("hashchange",()=>{const t=location.hash.slice(1);if(TABN[t])showTab(t)});
+addEventListener("hashchange",()=>{const t=location.hash.slice(1);if(TABN[t]||t==="lookup")showTab(t)});
 /* ---------- boot ---------- */
 (async()=>{
   try{await loadData()}catch(e){$("#loading").innerHTML=`<div class="empty"><b>Database kon niet laden</b><span>Deze browser ondersteunt geen gzip-decompressie. Gebruik een recente Chrome, Edge, Safari of Firefox.</span></div>`;return}
   await Store.open();await reloadSpots();$("#loading").remove();
   $("#radiusSel").value=LS.get("radius","25");$("#signLoc").textContent=center.code||"GPS";
   setTimeout(()=>{if(BG.on)syncBg(true)},4000);
-  initMap();setLblUI();if(map)map.on("zoomend",()=>{if(AC.length)updateAircraft(AC)});applyTheme(themeMode);setLegend(LS.get("legend",true));setAlertUI();keepAwake();poll();
+  initMap();setLblUI();if(map)map.on("zoomend",()=>{if(AC.length)updateAircraft(AC)});applyTheme(themeMode);setLegend(LS.get("legend",false));setAlertUI();keepAwake();poll();
   /* first visit: start where the spotter actually is */
   if(LS.get("meOn",false))watchMe();
   if(FIRST_RUN&&navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{showMe(p);watchMe();const a=nearestAirport(p.coords.latitude,p.coords.longitude);setCenter(p.coords.latitude,p.coords.longitude,a?.code||"GPS");toast("Radar staat op je huidige locatie")},()=>{},{timeout:8000,maximumAge:600000});
-  const t=TABN[location.hash.slice(1)]?location.hash.slice(1):LS.get("tab","radar");showTab(TABN[t]?t:"radar");
+  const t=(TABN[location.hash.slice(1)]||location.hash==="#lookup")?location.hash.slice(1):LS.get("tab","radar");showTab(TABN[t]?t:"radar");
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll()});
   // artifact runtime extras (only when opened inside Claude)
   if(window.claude?.use){
