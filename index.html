@@ -176,6 +176,22 @@ details.card[open]>summary::after{content:"▴"}
 .setrow .seg{flex:0 1 240px}
 .setrow input[type=checkbox]{width:22px;height:22px;accent-color:var(--sign)}
 @media (max-width:520px){.stat-row{grid-template-columns:repeat(2,1fr)}}
+.fids{display:flex;flex-direction:column;background:var(--signbar);border-radius:10px;overflow:hidden}
+.fids .fh,.fids .fr{display:grid;grid-template-columns:52px minmax(0,1fr) minmax(0,1.1fr) auto;gap:8px;align-items:center;padding:9px 12px}
+.fids .fh{font:600 11px var(--f-display);letter-spacing:.1em;text-transform:uppercase;color:#8E9893;border-bottom:1px solid #2B3236}
+.fids .fr{border:0;border-bottom:1px solid #22292d;background:none;color:#E6EAE5;text-align:left;cursor:pointer;width:100%;font:inherit}
+.fids .fr:last-child{border-bottom:0}
+.fids .fr:hover{background:#1c2226}
+.fids .tm{font:600 15px var(--f-mono);color:var(--sign)}
+.fids .fl{font:600 14px var(--f-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fids .al{font-size:12px;color:#8E9893;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fids .pl{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fids .ty{font:500 12px var(--f-mono);color:#8E9893;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fids .st{font:700 11px var(--f-display);letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:3px;white-space:nowrap;background:#2B3236;color:#E6EAE5}
+.fids .st.go{background:var(--sign);color:var(--sign-ink)}
+.fids .st.ok{background:#1F7A4D;color:#fff}
+.fids .new{color:var(--sign);font-size:11px}
+@media (max-width:420px){.fids .fh,.fids .fr{grid-template-columns:46px minmax(0,1fr) minmax(0,1fr) auto;padding:8px 10px;gap:6px}}
 .ctl.on{background:var(--sign);border-color:var(--sign);color:var(--sign-ink)}
 .me{width:22px;height:22px;position:relative}
 .me i{position:absolute;inset:4px;border-radius:50%;background:var(--me);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5)}
@@ -930,6 +946,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <button class="ctl" id="gpsBtn" title="Mijn locatie"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg></button>
         <button class="ctl" id="alertBtn" title="Melding bij overvliegen" aria-label="Melding bij overvliegen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 21h4"/></svg></button>
         <button class="ctl" id="lblBtn" title="Labels op de kaart" aria-label="Labels op de kaart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></svg></button>
+        <button class="ctl" id="boardBtn" title="Aankomst en vertrek" aria-label="Aankomst en vertrek"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 13h3M8 16h3M14 13h3M14 16h3"/></svg></button>
       </div>
       <button class="rwy" id="rwyPanel" hidden></button>
       <button class="overhead" id="overhead" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="oh-t" id="ohT">Boven je</span><span class="oh-cs" id="ohCs"></span><span class="oh-sub" id="ohSub"></span></span></button>
@@ -1337,7 +1354,7 @@ function seenChip(reg){if(!reg)return"";const n=seenCount.get(normReg(reg))||0;r
 function renderAcList(){const only=$("#onlyNew").checked;const items=AC.filter(a=>!only||(a.reg&&!seenCount.get(normReg(a.reg))));
   $("#acItems").innerHTML=items.length?items.map(a=>{const al=airlineFromCallsign(a.flight);return`<button class="acrow" data-hex="${esc(a.hex)}"><span class="altbar" style="background:var(${altColorVar(a.alt_baro)})"></span><span class="cs">${esc((a.flight||"").trim()||a.reg||a.hex)} <span class="mono muted small">${esc(a.type)}</span></span><span class="rt">${a.dist.toFixed(1)} NM<br>${esc(altTxt(a.alt_baro))}</span><span class="sub">${esc(al?.name||a.reg||"")} ${a.reg&&al?"· "+esc(a.reg):""} ${seenChip(a.reg)} ${specialChip(a)}</span></button>`}).join(""):`<div class="empty"><b>Niets te zien</b><span>${only?"Alle toestellen in de buurt heb je al gespot.":"Geen toestellen binnen de straal."}</span></div>`;
   $$("#acItems .acrow").forEach(b=>b.onclick=()=>openAircraft(b.dataset.hex))}
-function openAircraft(hex){const a=AC.find(x=>x.hex===hex);if(!a)return;selectedHex=hex;
+function openAircraft(hex){const a=AC.find(x=>x.hex===hex)||BOARD_AC.get(hex);if(!a)return;selectedHex=hex;
   const al=airlineFromCallsign(a.flight);const cs=(a.flight||"").trim();const loc=DB.byHex.get(hex.toUpperCase());
   const em={"7700":"Noodgeval","7600":"Radiostoring","7500":"Kaping"}[a.squawk];
   const body=h(`<div class="photo" id="acPhoto"><div class="empty small"><div class="spin"></div>Foto zoeken…</div></div>
@@ -1435,6 +1452,61 @@ function setLblUI(){$("#lblBtn").classList.toggle("on",LBL!=="off");$$("#setLbl 
 function setLbl(v){LBL=v;LS.set("labels",LBL);setLblUI();if(AC.length)updateAircraft(AC)}
 $$("#setLbl button").forEach(b=>b.onclick=()=>setLbl(b.dataset.v));
 $("#lblBtn").onclick=()=>{setLbl({al:"full",full:"off",off:"al"}[LBL]);toast({al:"Labels: naam",full:"Labels: naam + type",off:"Labels uit"}[LBL])};
+/* arrivals / departures board, built from live traffic around one airport */
+const BOARD_AC=new Map();const routeCache=new Map(Object.entries(LS.get("routes",{})));let boardTimer=null;
+function routeKey(cs){return(cs||"").trim().toUpperCase()}
+async function getRoute(cs){const k=routeKey(cs);if(!k)return null;const c=routeCache.get(k);if(c&&Date.now()-c.t<12*3600e3)return c.r;
+  const r=await Online.route(k);const slim=r?{o:{icao:r.origin?.icao_code,iata:r.origin?.iata_code,city:r.origin?.municipality||r.origin?.name},d:{icao:r.destination?.icao_code,iata:r.destination?.iata_code,city:r.destination?.municipality||r.destination?.name}}:null;
+  routeCache.set(k,{t:Date.now(),r:slim});
+  if(routeCache.size>800){const old=[...routeCache.entries()].sort((a,b)=>a[1].t-b[1].t).slice(0,200);old.forEach(([key])=>routeCache.delete(key))}
+  try{LS.set("routes",Object.fromEntries(routeCache))}catch{}return slim}
+async function pool(items,n,fn){let i=0;await Promise.all(Array.from({length:Math.min(n,items.length)},async()=>{while(i<items.length){const it=items[i++];try{await fn(it)}catch{}}}))}
+async function fetchAround(lat,lon,nm){const a=lat.toFixed(4),o=lon.toFixed(4);
+  const urls=[`https://api.adsb.lol/v2/point/${a}/${o}/${nm}`,`https://opendata.adsb.fi/api/v2/lat/${a}/lon/${o}/dist/${nm}`];
+  try{return await Promise.any(urls.map(u=>getJSON(u,9000).then(j=>{const ac=j.ac||j.aircraft;if(!Array.isArray(ac))throw 0;return ac})))}catch{return null}}
+function boardAirport(){const c=center.code&&DB.apByCode.get(center.code);if(c&&c.t!=="S")return c.code;return nearestAirport(center.lat,center.lon)?.code||center.code}
+function hhmm(ms){return new Date(ms).toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit"})}
+async function buildBoard(code){const ap=DB.apByCode.get(code);if(!ap)return null;
+  const raw=await fetchAround(ap.lat,ap.lon,150);if(!raw)return{err:true};
+  const list=raw.filter(a=>a.lat!=null&&a.flight&&/^[A-Z]{3}\d/.test(a.flight.trim())).map(a=>({...a,hex:a.hex,reg:a.r||DB.byHex.get((a.hex||"").toUpperCase())?.reg||"",type:a.t||DB.byHex.get((a.hex||"").toUpperCase())?.type||"",
+    dist:hav(center.lat,center.lon,a.lat,a.lon),apDist:hav(ap.lat,ap.lon,a.lat,a.lon)}));
+  // nearest first, so the routes that matter most are looked up first
+  list.sort((x,y)=>x.apDist-y.apDist);
+  await pool(list.slice(0,90),4,async a=>{a.route=await getRoute(a.flight)});
+  const now=Date.now(),arr=[],dep=[];const isAp=x=>x&&(x.icao===code||x.iata===ap.iata&&ap.iata);
+  for(const a of list){BOARD_AC.set(a.hex,a);const ground=a.alt_baro==="ground";const atAp=a.apDist<3;const r=a.route;
+    if(r&&isAp(r.d)&&!isAp(r.o)){
+      if(ground&&atAp)arr.push({a,t:now-1,st:"Geland",cls:"ok",place:r.o});
+      else if(!ground){const kt=a.gs||250;const min=a.apDist/kt*60+(a.apDist>15?4:1);arr.push({a,t:now+min*60e3,st:min<12?"Landt":"Onderweg",cls:min<12?"go":"",place:r.o})}}
+    else if(r&&isAp(r.o)&&!isAp(r.d)){
+      if(ground&&atAp)dep.push({a,t:now-1,st:"Aan de grond",cls:"",place:r.d,ground:true});
+      else if(!ground&&a.apDist<120)dep.push({a,t:now-a.apDist/(a.gs||300)*3600e3,st:a.apDist<15?"Opgestegen":"Vertrokken",cls:a.apDist<15?"go":"ok",place:r.d})}
+    else if(!r&&!ground&&a.apDist<35&&typeof a.alt_baro==="number"&&a.alt_baro<9000&&(a.baro_rate||0)<-300&&a.track!=null){
+      const brg=(Math.atan2((ap.lon-a.lon)*Math.cos(a.lat*Math.PI/180),ap.lat-a.lat)*180/Math.PI+360)%360;
+      if(angDiff(brg,a.track)<35){const min=a.apDist/(a.gs||200)*60+1;arr.push({a,t:now+min*60e3,st:"Landt",cls:"go",place:null})}}}
+  arr.sort((x,y)=>x.t-y.t);dep.sort((x,y)=>(y.ground?1:0)-(x.ground?1:0)||y.t-x.t);
+  return{arr,dep,at:now}}
+function boardRows(rows,kind){if(!rows.length)return`<div class="empty small" style="color:#8E9893">Nu niets ${kind==="arr"?"onderweg":"vertrokken"}</div>`;
+  return rows.slice(0,40).map(({a,t,st,cls,place})=>{const al=airlineFromCallsign(a.flight);const pl=place?(place.city||place.iata||place.icao):"–";
+    const isNew=a.reg&&!seenCount.get(normReg(a.reg));const time=st==="Geland"||st==="Aan de grond"?"":hhmm(t);
+    return`<button class="fr" data-hex="${esc(a.hex)}"><span class="tm">${esc(time)}</span>
+      <span style="min-width:0;display:flex;flex-direction:column"><span class="fl">${esc(a.flight.trim())}</span><span class="al">${esc(shortAirline(al)||"")}</span></span>
+      <span style="min-width:0;display:flex;flex-direction:column"><span class="pl">${esc(pl)}</span><span class="ty">${esc([a.type,a.reg].filter(Boolean).join(" · "))}${isNew?' <span class="new">★</span>':""}</span></span>
+      <span class="st ${cls}">${esc(st)}</span></button>`}).join("")}
+function openBoard(code){code=code||boardAirport();const ap=DB.apByCode.get(code);if(!ap){toast("Kies eerst een luchthaven");return}
+  let mode="arr",data=null;
+  const body=h(`<div class="seg" style="grid-template-columns:repeat(2,1fr)" id="bSeg"><button data-m="arr" aria-pressed="true">Aankomst</button><button data-m="dep" aria-pressed="false">Vertrek</button></div>
+    <div id="bList"><div class="empty"><div class="spin"></div></div></div>
+    <div class="small muted" id="bFoot" style="text-align:center"></div>`);
+  const draw=()=>{const l=body.querySelector("#bList");if(!data)return;if(data.err){l.innerHTML=`<div class="empty"><b>Geen live data</b></div>`;return}
+    l.innerHTML=`<div class="fids"><div class="fh"><span>${mode==="arr"?"Tijd":"Tijd"}</span><span>Vlucht</span><span>${mode==="arr"?"Van":"Naar"}</span><span>Status</span></div>${boardRows(data[mode],mode)}</div>`;
+    l.querySelectorAll(".fr").forEach(b=>b.onclick=()=>{sh.close();showTab("radar");openAircraft(b.dataset.hex)});
+    body.querySelector("#bFoot").textContent=`Bijgewerkt ${hhmm(data.at)}`};
+  body.querySelectorAll("#bSeg button").forEach(b=>b.onclick=()=>{mode=b.dataset.m;body.querySelectorAll("#bSeg button").forEach(x=>x.setAttribute("aria-pressed",x===b));draw()});
+  const load=async()=>{data=await buildBoard(code);draw()};
+  const sh=openSheet(`<div class="lbl">${esc(code)}${ap.iata?" · "+esc(ap.iata):""}</div><h2>${esc(ap.name)}</h2>`,body,{onClose:()=>clearInterval(boardTimer)});
+  clearInterval(boardTimer);load();boardTimer=setInterval(()=>{if(!document.hidden)load()},60000)}
+$("#boardBtn").onclick=()=>openBoard();
 /* runway in use, derived from live traffic */
 const RWY=JSON.parse(document.getElementById("d-rw").textContent);
 const RWY_NAMES={EHAM:{"18R":"Polderbaan","36L":"Polderbaan","18C":"Zwanenburgbaan","36C":"Zwanenburgbaan","18L":"Aalsmeerbaan","36R":"Aalsmeerbaan","06":"Kaagbaan","24":"Kaagbaan","09":"Buitenveldertbaan","27":"Buitenveldertbaan","04":"Oostbaan","22":"Oostbaan"}};
@@ -1767,9 +1839,10 @@ function openAirport(code){const a=DB.apByCode.get(code);if(!a)return;const mine
     <dt>Plaats</dt><dd>${esc(a.city||"–")}, ${esc(regionName(a.cc))}</dd><dt>Soort</dt><dd>${{L:"Grote luchthaven",M:"Middelgrote luchthaven",S:"Klein vliegveld / GA"}[a.t]}${a.sched?" · lijndiensten":""}</dd>
     <dt>Hoogte</dt><dd class="mono">${a.elev?a.elev+" ft":"–"}</dd><dt>Positie</dt><dd class="mono">${a.lat.toFixed(4)}, ${a.lon.toFixed(4)}</dd>
     <dt>Jouw spots</dt><dd>${mine.length}</dd></dl></div>
-    <div class="row"><button class="btn primary" id="radarHere">Radar hier</button><a class="btn" href="https://www.openstreetmap.org/?mlat=${a.lat}&mlon=${a.lon}#map=14/${a.lat}/${a.lon}" target="_blank" rel="noopener">Kaart</a><a class="btn" href="https://metar-taf.com/${a.code}" target="_blank" rel="noopener">Weer (METAR)</a>${RWY[a.code]&&rwyObs.get(a.code)?.length?`<button class="btn" id="rwHere">Baangebruik</button>`:""}</div>`);
+    <div class="row"><button class="btn primary" id="radarHere">Radar hier</button><a class="btn" href="https://www.openstreetmap.org/?mlat=${a.lat}&mlon=${a.lon}#map=14/${a.lat}/${a.lon}" target="_blank" rel="noopener">Kaart</a><button class="btn" id="boardHere">Bord</button><a class="btn" href="https://metar-taf.com/${a.code}" target="_blank" rel="noopener">Weer</a>${RWY[a.code]&&rwyObs.get(a.code)?.length?`<button class="btn" id="rwHere">Baangebruik</button>`:""}</div>`);
   const sh=openSheet(`<div class="lbl">Luchthaven · ${a.code}</div><h2>${esc(a.name)}</h2>`,body);
   body.querySelector("#rwHere")?.addEventListener("click",()=>{sh.close();openRunways(a.code)});
+  body.querySelector("#boardHere").onclick=()=>{sh.close();openBoard(a.code)};
   body.querySelector("#radarHere").onclick=()=>{sh.close();showTab("radar");setCenter(a.lat,a.lon,a.code)}}
 function openType(code){const d=prettyType(code);const mine=SPOTS.filter(s=>s.type===code);const regs=[...new Set(mine.map(s=>s.reg))];const now=AC.filter(x=>x.type===code);
   const ex=[];for(const v of DB.byHex.values()){if(v.type===code){ex.push(v);if(ex.length>=400)break}}
