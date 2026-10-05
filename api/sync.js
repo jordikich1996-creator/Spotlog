@@ -37,6 +37,19 @@ module.exports = async function handler(req, res) {
     if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_STORE_ID)
       return json(res, 503, { fout: "Geen opslag gekoppeld. Maak in Vercel bij Storage een Blob-opslag aan en koppel die aan dit project." });
 
+    if (op === "selftest") {
+      // controle van de opslag zonder je logboek aan te raken
+      const out = { stap: [] }; const tp = "spotlog/_selftest.json";
+      try {
+        const w1 = await put(tp, JSON.stringify({ t: Date.now() }), { access: "private", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" });
+        out.stap.push("schrijven ok, etag " + w1.etag);
+        const r1 = await readBlob(tp); out.stap.push(r1 ? "lezen ok, etag " + r1.etag : "lezen: niet gevonden");
+        try { const w2 = await put(tp, JSON.stringify({ t: Date.now() }), { access: "private", addRandomSuffix: false, ifMatch: r1 && r1.etag, contentType: "application/json" }); out.stap.push("veilig overschrijven ok, etag " + w2.etag); }
+        catch (e) { out.stap.push("veilig overschrijven mislukt: " + (e && e.message)); }
+        out.ok = true;
+      } catch (e) { out.ok = false; out.fout = String((e && e.message) || e); }
+      return json(res, 200, out);
+    }
     const code = String(req.headers["x-sync-code"] || "");
     if (!/^[A-Za-z0-9-]{20,80}$/.test(code)) return json(res, 401, { fout: "ongeldige synchronisatiecode" });
     const space = "spotlog/" + crypto.createHash("sha256").update(code).digest("hex").slice(0, 40);
