@@ -1874,9 +1874,9 @@ const SYNC_OK=/\.vercel\.app$/.test(location.hostname)||LS.get("syncAnyHost",fal
 const syncUrl=q=>location.origin+"/api/sync?"+q;
 function tombstone(id){const d=LS.get("deleted",{});d[id]=Date.now();LS.set("deleted",d)}
 const spotTime=s=>s.updated||Date.parse(s.created||s.date)||0;
-async function syncFetch(q,opt={}){const r=await fetch(syncUrl(q),{...opt,headers:{...(opt.headers||{}),"x-sync-code":SYNC.code}});
+async function syncFetch(q,opt={}){let r;try{r=await fetch(syncUrl(q),{...opt,signal:AbortSignal.timeout?AbortSignal.timeout(25000):undefined,headers:{...(opt.headers||{}),"x-sync-code":SYNC.code}})}catch(e){throw new Error(e&&e.name==="TimeoutError"?"geen antwoord (time-out)":"geen verbinding")}
   let j=null;const ct=r.headers.get("content-type")||"";if(ct.includes("json"))j=await r.json().catch(()=>null);
-  if(!r.ok&&r.status!==409)throw new Error((j&&j.fout)||("HTTP "+r.status));return{r,j}}
+  if(!r.ok&&r.status!==409)throw new Error((j&&j.fout)||("HTTP "+r.status+(r.status===404?" (api/sync.js niet gevonden)":"")));return{r,j}}
 async function blobToJpeg(b){return b.type==="image/jpeg"?b:await resizeImage(b,1600)}
 async function syncNow(manual){if(!SYNC.code||SYNC.busy)return;SYNC.busy=true;SYNC.err="";renderSyncUI();
   try{for(let attempt=0;attempt<3;attempt++){
@@ -1904,8 +1904,9 @@ async function syncNow(manual){if(!SYNC.code||SYNC.busy)return;SYNC.busy=true;SY
     const doc={v:1,saved:Date.now(),spots:merged,deleted:del,photos};
     const same=JSON.stringify((sd.spots||[]).map(s=>[s.id,spotTime(s)]).sort())===JSON.stringify(merged.map(s=>[s.id,spotTime(s)]).sort())&&
       JSON.stringify(Object.keys(sd.deleted||{}).sort())===JSON.stringify(Object.keys(del).sort())&&(sd.photos||[]).length===photos.length;
-    if(!same||!pull.doc){const {r,j}=await syncFetch("op=push",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({doc,etag:pull.etag})});
-      if(r.status===409)continue}
+    if(!same||!pull.doc){const last=attempt===2;
+      const {r}=await syncFetch("op=push",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(last?{doc,etag:null,force:true}:{doc,etag:pull.etag})});
+      if(r.status===409){if(last)throw new Error("opslaan geweigerd (conflict)");continue}}
     SYNC.last=Date.now();LS.set("syncLast",SYNC.last);
     if(changedHere){await reloadSpots();renderLog();if(!$("#v-stats").hidden)renderStats()}
     if(manual)toast(changedHere?`Gesynchroniseerd · ${changedHere} bijgewerkt`:"Alles is bijgewerkt");
