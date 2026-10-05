@@ -1054,6 +1054,20 @@ svg.leaflet-image-layer.leaflet-interactive path {
             <input type="file" id="importFile" accept="application/json,.json" hidden>
           </div>
         </div>
+        <div class="card" id="setSync">
+          <div class="lbl">Synchronisatie</div>
+          <div id="syncOff">
+            <div class="row"><button class="btn primary" id="syncStart">Aanzetten</button></div>
+            <div class="field" style="margin-top:12px"><label class="lbl" for="syncJoin">Of koppel met je code</label>
+              <div class="row" style="flex-wrap:nowrap"><input id="syncJoin" class="input mono" placeholder="spot-xxxx-xxxx-xxxx-xxxx" autocomplete="off" autocapitalize="none" spellcheck="false"><button class="btn" id="syncJoinBtn">Koppel</button></div></div>
+          </div>
+          <div id="syncOn" hidden>
+            <div class="field"><span class="lbl">Jouw code</span><div class="row" style="flex-wrap:nowrap"><input id="syncCode" class="input mono" readonly><button class="btn" id="syncCopy">Kopieer</button></div></div>
+            <div class="small muted" id="syncState"></div>
+            <div class="row"><button class="btn primary" id="syncNowBtn">Nu synchroniseren</button><button class="btn" id="syncStop">Uitzetten</button></div>
+          </div>
+          <div class="small muted" id="syncNA" hidden>Werkt alleen in je eigen app.</div>
+        </div>
         <div class="card" id="setConn">
           <div class="lbl">Verbinding</div>
           <div id="diag" class="mono small" style="display:flex;flex-direction:column;gap:2px"></div>
@@ -1257,7 +1271,7 @@ const h=(html)=>{const d=document.createElement("div");d.style.cssText="display:
 const TABN={radar:"Radar",log:"Logboek",stats:"Statistieken",db:"Zoeken",settings:"Instellingen"};
 function showTab(t){if(t==="lookup"){seg="reg";setDbSeg();t="db"}if(!TABN[t])t="radar";$$("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));
   for(const k of Object.keys(TABN))$("#v-"+k).hidden=k!==t;$("#signDirTxt").textContent=TABN[t];LS.set("tab",t);
-  if(t==="radar"&&map)setTimeout(()=>map.invalidateSize(),50);if(t==="log")renderLog();if(t==="stats")renderStats();if(t==="db")renderDB();if(t==="settings")syncSettings()}
+  if(t==="radar"&&map)setTimeout(()=>map.invalidateSize(),50);if(t==="log")renderLog();if(t==="stats")renderStats();if(t==="db")renderDB();if(t==="settings"){syncSettings();renderSyncUI()}}
 $$("nav.tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 
 /* ---------- radar ---------- */
@@ -1659,9 +1673,9 @@ function openSpotForm(pre={},existing=null){ensureDatalists();
     const dStr=q("#f-date").value||todayStr,tStr=q("#f-time").value;const noTime=!tStr;
     const spotDate=tStr?new Date(dStr+"T"+tStr):(dStr===todayStr?new Date():new Date(dStr+"T12:00"));
     const rec={id:s0.id||uid(),reg,hex:q("#f-hex").value.trim().toUpperCase(),type:q("#f-type").value.trim().toUpperCase(),airlineIcao:icao,airlineName:icao?DB.alByIcao.get(icao).name:alv,
-      airport:parseAirport(q("#f-ap").value),date:spotDate.toISOString(),noTime,callsign:q("#f-cs").value.trim().toUpperCase(),notes:q("#f-notes").value.trim(),photos,created:s0.created||new Date().toISOString()};
+      airport:parseAirport(q("#f-ap").value),date:spotDate.toISOString(),noTime,callsign:q("#f-cs").value.trim().toUpperCase(),notes:q("#f-notes").value.trim(),photos,created:s0.created||new Date().toISOString(),updated:Date.now()};
     if(existing)for(const id of s0.photos||[])if(!photos.includes(id))await Store.del("photos",id);
-    await Store.put("spots",rec);await reloadSpots();
+    await Store.put("spots",rec);await reloadSpots();syncSoon();
     if(!existing)LS.set("lastForm",{date:dStr,airport:rec.airport,at:Date.now()});
     const next=e.submitter&&e.submitter.id==="f-next";sheet.close();
     if(next){toast(`${reg} opgeslagen · volgende`);openSpotForm()}else{toast(existing?"Spot bijgewerkt":"Spot opgeslagen");showTab("log")}};
@@ -1731,7 +1745,7 @@ $("#selAll").onclick=()=>{lastShown.forEach(s=>picked.add(s.id));renderLog()};
 $("#selNone").onclick=()=>{picked.clear();renderLog()};
 $("#selDel").onclick=async()=>{const d=$("#selDel");if(!picked.size)return;
   if(!d.classList.contains("armed")){d.classList.add("armed");d.textContent=`Zeker? ${picked.size} spots weg`;return}
-  const n=picked.size;for(const id of picked){const s=SPOTS.find(x=>x.id===id);for(const p of s?.photos||[])await Store.del("photos",p);await Store.del("spots",id)}
+  const n=picked.size;for(const id of picked){const s=SPOTS.find(x=>x.id===id);for(const p of s?.photos||[])await Store.del("photos",p);await Store.del("spots",id);tombstone(id)}syncSoon();
   picked.clear();selMode=false;await reloadSpots();renderLog();toast(`${n} spots verwijderd`)};$("#logFilter").onchange=renderLog;$("#newSpotBtn").onclick=()=>openSpotForm();
 async function openSpot(id){const s=SPOTS.find(x=>x.id===id);if(!s)return;const ap=DB.apByCode.get(s.airport);const al=DB.alByIcao.get(s.airlineIcao);const n=seenCount.get(normReg(s.reg))||1;
   const body=h(`<div id="spPhotos" class="wrap" style="gap:10px"></div>
@@ -1753,7 +1767,7 @@ async function openSpot(id){const s=SPOTS.find(x=>x.id===id);if(!s)return;const 
   body.querySelector("#edit").onclick=()=>{sh.close();openSpotForm({},s)};
   body.querySelector("#again").onclick=()=>{sh.close();openSpotForm({reg:s.reg,hex:s.hex,type:s.type,airlineIcao:s.airlineIcao})};
   const del=body.querySelector("#del");del.onclick=async()=>{if(!del.classList.contains("armed")){del.classList.add("armed");del.textContent="Zeker? Tik nogmaals";return}
-    for(const p of s.photos||[])await Store.del("photos",p);await Store.del("spots",s.id);await reloadSpots();sh.close();renderLog();toast("Spot verwijderd")}}
+    for(const p of s.photos||[])await Store.del("photos",p);await Store.del("spots",s.id);tombstone(s.id);syncSoon();await reloadSpots();sh.close();renderLog();toast("Spot verwijderd")}}
 /* export / import */
 let DOWNLOADS=null;
 async function saveFile(filename,blob){if(DOWNLOADS){try{await DOWNLOADS.save({filename,data:blob});return}catch(e){if(e?.code==="declined")return;toast("Opslaan lukte niet");return}}
@@ -1765,7 +1779,7 @@ $("#exportCsvBtn").onclick=()=>{const cols=["date","reg","type","airlineIcao","a
   saveFile(`spotlog-${new Date().toISOString().slice(0,10)}.csv`,new Blob([cols.join(",")+"\n"+SPOTS.map(s=>cols.map(c=>q(s[c])).join(",")).join("\n")],{type:"text/csv"}))};
 $("#importFile").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;try{const j=JSON.parse(await f.text());let n=0;
   for(const [id,d] of Object.entries(j.photos||{})){const blob=await (await fetch(d)).blob();await Store.put("photos",{id,blob})}
-  for(const s of j.spots||[]){if(s.id&&s.reg){await Store.put("spots",s);n++}}await reloadSpots();renderLog();toast(`${n} spots geïmporteerd`)}catch{toast("Dit bestand is geen geldige Spotlog-export")}};
+  for(const s of j.spots||[]){if(s.id&&s.reg){if(!s.updated)s.updated=Date.now();await Store.put("spots",s);n++}}await reloadSpots();syncSoon();renderLog();toast(`${n} spots geïmporteerd`)}catch{toast("Dit bestand is geen geldige Spotlog-export")}};
 
 /* ---------- lookup tab ---------- */
 async function runLookup(){const v=$("#lookupInput").value.trim();const out=$("#lookupOut");if(!v){out.innerHTML="";return}
@@ -1854,6 +1868,65 @@ function openType(code){const d=prettyType(code);const mine=SPOTS.filter(s=>s.ty
     ${regs.length?`<div class="card"><div class="lbl">Jouw ${esc(code)}'s</div><div class="small mono">${regs.map(esc).join(" · ")}</div></div>`:""}`);
   openSheet(`<div class="lbl">Vliegtuigtype</div><h2>${esc(code)}${d?" · "+esc(d):""}</h2>`,body)}
 
+/* ---------- sync between devices (Vercel Blob, private) ---------- */
+const SYNC={code:LS.get("syncCode",""),last:LS.get("syncLast",0),busy:false,err:""};
+const SYNC_OK=/\.vercel\.app$/.test(location.hostname)||LS.get("syncAnyHost",false);
+const syncUrl=q=>location.origin+"/api/sync?"+q;
+function tombstone(id){const d=LS.get("deleted",{});d[id]=Date.now();LS.set("deleted",d)}
+const spotTime=s=>s.updated||Date.parse(s.created||s.date)||0;
+async function syncFetch(q,opt={}){const r=await fetch(syncUrl(q),{...opt,headers:{...(opt.headers||{}),"x-sync-code":SYNC.code}});
+  let j=null;const ct=r.headers.get("content-type")||"";if(ct.includes("json"))j=await r.json().catch(()=>null);
+  if(!r.ok&&r.status!==409)throw new Error((j&&j.fout)||("HTTP "+r.status));return{r,j}}
+async function blobToJpeg(b){return b.type==="image/jpeg"?b:await resizeImage(b,1600)}
+async function syncNow(manual){if(!SYNC.code||SYNC.busy)return;SYNC.busy=true;SYNC.err="";renderSyncUI();
+  try{for(let attempt=0;attempt<3;attempt++){
+    const {j:pull}=await syncFetch("op=pull");const sd=pull.doc||{spots:[],deleted:{},photos:[]};
+    const local=await Store.all("spots");const ldel=LS.get("deleted",{});
+    // merge: newest edit wins; a deletion wins over older edits
+    const del={...(sd.deleted||{})};for(const [k,v] of Object.entries(ldel))del[k]=Math.max(del[k]||0,v);
+    const byId=new Map();for(const s of [...(sd.spots||[]),...local]){const o=byId.get(s.id);if(!o||spotTime(s)>spotTime(o))byId.set(s.id,s)}
+    for(const [id,ts] of Object.entries(del)){const s=byId.get(id);if(s&&spotTime(s)<=ts)byId.delete(id)}
+    // keep tombstones for 120 days
+    const cutoff=Date.now()-120*864e5;for(const k of Object.keys(del))if(del[k]<cutoff)delete del[k];
+    const merged=[...byId.values()];
+    // apply to this device
+    const localMap=new Map(local.map(s=>[s.id,s]));let changedHere=0;
+    for(const s of merged){const l=localMap.get(s.id);if(!l||spotTime(s)>spotTime(l)){await Store.put("spots",s);changedHere++}}
+    for(const l of local)if(!byId.has(l.id)){for(const p of l.photos||[])await Store.del("photos",p);await Store.del("spots",l.id);changedHere++}
+    LS.set("deleted",del);
+    // photos: upload what the server misses, download what this device misses
+    const srvPhotos=new Set(sd.photos||[]);const needed=new Set(merged.flatMap(s=>s.photos||[]));
+    for(const pid of needed){if(srvPhotos.has(pid))continue;const ph=await Store.get("photos",pid);if(!ph)continue;
+      await syncFetch("op=photo&id="+encodeURIComponent(pid),{method:"PUT",headers:{"Content-Type":"image/jpeg"},body:await blobToJpeg(ph.blob)});srvPhotos.add(pid)}
+    for(const pid of needed){if(await Store.get("photos",pid))continue;if(!srvPhotos.has(pid))continue;
+      const r=await fetch(syncUrl("op=photo&id="+encodeURIComponent(pid)),{headers:{"x-sync-code":SYNC.code}});if(r.ok){await Store.put("photos",{id:pid,blob:await r.blob()});changedHere++}}
+    const photos=[...srvPhotos].filter(p=>needed.has(p));
+    const doc={v:1,saved:Date.now(),spots:merged,deleted:del,photos};
+    const same=JSON.stringify((sd.spots||[]).map(s=>[s.id,spotTime(s)]).sort())===JSON.stringify(merged.map(s=>[s.id,spotTime(s)]).sort())&&
+      JSON.stringify(Object.keys(sd.deleted||{}).sort())===JSON.stringify(Object.keys(del).sort())&&(sd.photos||[]).length===photos.length;
+    if(!same||!pull.doc){const {r,j}=await syncFetch("op=push",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({doc,etag:pull.etag})});
+      if(r.status===409)continue}
+    SYNC.last=Date.now();LS.set("syncLast",SYNC.last);
+    if(changedHere){await reloadSpots();renderLog();if(!$("#v-stats").hidden)renderStats()}
+    if(manual)toast(changedHere?`Gesynchroniseerd · ${changedHere} bijgewerkt`:"Alles is bijgewerkt");
+    break}}
+  catch(e){SYNC.err=String(e.message||e);if(manual)toast("Synchroniseren mislukt")}
+  finally{SYNC.busy=false;renderSyncUI()}}
+let syncT=null;function syncSoon(){if(!SYNC.code)return;clearTimeout(syncT);syncT=setTimeout(()=>syncNow(false),15000)}
+function newSyncCode(){const a="abcdefghjkmnpqrstuvwxyz23456789";const r=crypto.getRandomValues(new Uint8Array(16));let s="spot";for(let i=0;i<16;i++){if(i%4===0)s+="-";s+=a[r[i]%a.length]}return s}
+function renderSyncUI(){const na=!SYNC_OK;$("#syncNA").hidden=!na;$("#syncOff").hidden=na||!!SYNC.code;$("#syncOn").hidden=na||!SYNC.code;
+  if(SYNC.code){$("#syncCode").value=SYNC.code;
+    $("#syncState").textContent=SYNC.busy?"Bezig…":SYNC.err?("Fout: "+SYNC.err):SYNC.last?("Laatst: "+new Date(SYNC.last).toLocaleString("nl-NL",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})):"Nog niet gesynchroniseerd"}}
+async function startSync(code){SYNC.code=code;try{await syncFetch("op=status")}catch(e){SYNC.code="";toast(e.message);renderSyncUI();return}
+  LS.set("syncCode",code);renderSyncUI();await syncNow(true)}
+$("#syncStart").onclick=()=>startSync(newSyncCode());
+$("#syncJoinBtn").onclick=()=>{const c=$("#syncJoin").value.trim().toLowerCase();if(!/^[a-z0-9-]{20,80}$/.test(c)){toast("Ongeldige code");return}startSync(c)};
+$("#syncNowBtn").onclick=()=>syncNow(true);
+$("#syncCopy").onclick=()=>{navigator.clipboard?.writeText(SYNC.code).then(()=>toast("Gekopieerd"),()=>$("#syncCode").select())};
+$("#syncStop").onclick=()=>{const b=$("#syncStop");if(!b.classList.contains("armed")){b.classList.add("armed");b.textContent="Zeker?";return}
+  SYNC.code="";LS.set("syncCode","");b.classList.remove("armed");b.textContent="Uitzetten";renderSyncUI();toast("Synchronisatie uit, je spots blijven op dit apparaat")};
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&SYNC.code&&Date.now()-SYNC.last>120000)syncNow(false)});
+
 
 /* ---------- PWA ---------- */
 if("serviceWorker" in navigator&&location.protocol==="https:"){navigator.serviceWorker.register("sw.js").catch(()=>{})}
@@ -1867,6 +1940,7 @@ addEventListener("hashchange",()=>{const t=location.hash.slice(1);if(TABN[t]||t=
   await Store.open();await reloadSpots();$("#loading").remove();
   $("#radiusSel").value=LS.get("radius","25");$("#signLoc").textContent=center.code||"GPS";
   setTimeout(()=>{if(BG.on)syncBg(true)},4000);
+  renderSyncUI();if(SYNC.code)setTimeout(()=>syncNow(false),2500);
   initMap();setLblUI();if(map)map.on("zoomend",()=>{if(AC.length)updateAircraft(AC)});applyTheme(themeMode);setLegend(LS.get("legend",false));setAlertUI();keepAwake();poll();
   /* first visit: start where the spotter actually is */
   if(LS.get("meOn",false))watchMe();
